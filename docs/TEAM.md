@@ -28,14 +28,14 @@ If the team picks another idea, the split below still holds: it follows the laye
 
 ## 2. Four equal parts
 
-|                     | **P1: On-chain core**                                 | **P2: Backend**                                                | **P3: Frontend**                                             | **P4: AI agent**                                                     |
-| ------------------- | ----------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Folder              | `packages/core`                                       | `apps/server`                                                  | `apps/web`                                                   | `apps/agent`                                                         |
-| Owner (GitHub)      | `@…`                                                  | `@…`                                                           | `@…`                                                         | `@…`                                                                 |
-| Product work        | USDx demo token, create / fill / cancel offers, broadcast | Order book API, offer validation, paid 402 service, live feed | Wallet connection, Swap / Sell / Agent pages, transaction feed | Agent wallet, spend policy, tools (find offer, swap, pay), LLM loop |
-| Submission work     | WhatsOnChain link table in the README                 | README setup section, demo environment                         | Demo video (≤ 2:30)                                          | Devfolio description, pitch for the judges                           |
-| Rough effort        | ~18 h                                                 | ~18 h                                                          | ~18 h                                                        | ~18 h                                                                |
-| Issue               | #2                                                    | #3                                                             | #4                                                           | #5                                                                   |
+|                 | **P1: On-chain core**                                     | **P2: Backend**                                               | **P3: Frontend**                                               | **P4: AI agent**                                                    |
+| --------------- | --------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Folder          | `packages/core`                                           | `apps/server`                                                 | `apps/web`                                                     | `apps/agent`                                                        |
+| Owner (GitHub)  | @NotBot-Computer                                          | @efekaansalici07-design                                       | @efeberkinaslan07-rgb                                          | 4th member (not invited yet)                                        |
+| Product work    | USDx demo token, create / fill / cancel offers, broadcast | Order book API, offer validation, paid 402 service, live feed | Wallet connection, Swap / Sell / Agent pages, transaction feed | Agent wallet, spend policy, tools (find offer, swap, pay), LLM loop |
+| Submission work | WhatsOnChain link table in the README                     | README setup section, demo environment                        | Demo video (≤ 2:30)                                            | Devfolio description, pitch for the judges                          |
+| Rough effort    | ~18 h                                                     | ~18 h                                                         | ~18 h                                                          | ~18 h                                                               |
+| Issue           | #2                                                        | #3                                                            | #4                                                             | #5                                                                  |
 
 Shared: #1 (setup, everyone) and #6 (submission, everyone).
 
@@ -86,16 +86,16 @@ the browser, wallet-toolbox in the agent.
 
 ## 3. Timeline (Munich time, CET)
 
-| When                 | Milestone                                                                                                         |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Fri 09:00            | Start: confirm the idea, `npm install`, `.env`, BSV Desktop on testnet                                            |
-| Fri 11:30–12:00      | **BSV workshop** (everyone; bring questions about BSV-21 on testnet and `createSignature`)                         |
-| **Fri 12:00 · M0**   | Everyone runs `dev: all`; `AGENTS.md` in the root; test coins requested                                           |
-| **Fri 18:00 · M1**   | Each part works alone: USDx minted, `/api/offers` up, wallet connect + a BSV payment, the agent pays the 402 service |
-| **Sat 02:00 · M2**   | End-to-end swap: create an offer in the web app, fill it from the web app and from the agent                      |
-| **Sat 10:00 · M3**   | Full demo flow integrated; **feature freeze at 12:00**                                                            |
-| Sat 12:00–14:30      | Video, README, Devfolio, WoC links, make the repo **public**                                                      |
-| **Sat 15:00**        | Submission deadline on Devfolio; live judging 15:00–17:00; winners at 17:30                                       |
+| When               | Milestone                                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Fri 09:00          | Start: confirm the idea, `npm install`, `.env`, BSV Desktop on testnet                                               |
+| Fri 11:30–12:00    | **BSV workshop** (everyone; bring questions about BSV-21 on testnet and `createSignature`)                           |
+| **Fri 12:00 · M0** | Everyone runs `dev: all`; `AGENTS.md` in the root; test coins requested                                              |
+| **Fri 18:00 · M1** | Each part works alone: USDx minted, `/api/offers` up, wallet connect + a BSV payment, the agent pays the 402 service |
+| **Sat 02:00 · M2** | End-to-end swap: create an offer in the web app, fill it from the web app and from the agent                         |
+| **Sat 10:00 · M3** | Full demo flow integrated; **feature freeze at 12:00**                                                               |
+| Sat 12:00–14:30    | Video, README, Devfolio, WoC links, make the repo **public**                                                         |
+| **Sat 15:00**      | Submission deadline on Devfolio; live judging 15:00–17:00; winners at 17:30                                          |
 
 The venue stays open on Friday night (bring a sleeping bag).
 
@@ -122,20 +122,20 @@ The venue stays open on Friday night (bring a sleeping bag).
 
 ## 6. Demo script (draft, ≤ 2:30)
 
-| Time      | Scene                                                                                                   |
-| --------- | ------------------------------------------------------------------------------------------------------- |
-| 0:00–0:15 | The problem in one sentence, AgentSwap in one sentence                                                  |
-| 0:15–0:45 | A maker connects BSV Desktop and lists 100 USDx for N sats → WoC                                         |
+| Time      | Scene                                                                                                                                                |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0:00–0:15 | The problem in one sentence, AgentSwap in one sentence                                                                                               |
+| 0:15–0:45 | A maker connects BSV Desktop and lists 100 USDx for N sats → WoC                                                                                     |
 | 0:45–1:35 | The user funds the agent and gives it a task; the agent hits a 402, finds an offer, swaps, pays and returns the result; the feed shows each WoC link |
-| 1:35–2:05 | A person buys USDx in the web app (BSV Desktop prompt) → WoC                                             |
-| 2:05–2:30 | Architecture and custody slide, what AgentSwap brings to BSV                                            |
+| 1:35–2:05 | A person buys USDx in the web app (BSV Desktop prompt) → WoC                                                                                         |
+| 2:05–2:30 | Architecture and custody slide, what AgentSwap brings to BSV                                                                                         |
 
 ## 7. Risks and fallbacks
 
-| Risk                                                            | Fallback (decide by M1)                                                                                  |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| No BSV-21 indexer on testnet                                    | Our server checks USDx lineage itself (we are the only issuer), or switch to wallet-native tokens (`@bsv/btms`, or PushDrop tokens via `@bsv/simple`) |
-| BSV Desktop will not produce the maker's SINGLE \| ANYONECANPAY signature | Interactive two-step swap relayed by the server: the taker builds, the maker co-signs. Still non-custodial |
-| Test coins arrive late                                          | Ask in the Telegram support group at 09:00; mainnet with a few cents is allowed by the rules              |
-| LLM API problems                                                | Keep every tool callable from a script so the payment flow still runs; the final video uses the LLM        |
-| Integration crunch                                              | M2 is the hard integration point; after M3 only fixes                                                     |
+| Risk                                                                      | Fallback (decide by M1)                                                                                                                               |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No BSV-21 indexer on testnet                                              | Our server checks USDx lineage itself (we are the only issuer), or switch to wallet-native tokens (`@bsv/btms`, or PushDrop tokens via `@bsv/simple`) |
+| BSV Desktop will not produce the maker's SINGLE \| ANYONECANPAY signature | Interactive two-step swap relayed by the server: the taker builds, the maker co-signs. Still non-custodial                                            |
+| Test coins arrive late                                                    | Ask in the Telegram support group at 09:00; mainnet with a few cents is allowed by the rules                                                          |
+| LLM API problems                                                          | Keep every tool callable from a script so the payment flow still runs; the final video uses the LLM                                                   |
+| Integration crunch                                                        | M2 is the hard integration point; after M3 only fixes                                                                                                 |

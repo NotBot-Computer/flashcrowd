@@ -29,13 +29,13 @@ of those fit autonomous, high-frequency micropayments.
 
 ## Track requirements
 
-| Requirement                                   | AgentSwap                                                                     |
-| --------------------------------------------- | ----------------------------------------------------------------------------- |
-| BSV SDK and Wallet Toolbox (ts-stack)         | `@bsv/sdk` throughout; wallet-toolbox for the agent's and the server's wallets |
-| A standard BSV wallet for user flows          | `WalletClient` → BSV Desktop / BSV Browser; keys never leave the wallet       |
-| Real transactions                             | Testnet, broadcast through Arcade (links below)                               |
-| Non-custodial                                 | Users sign their own swaps; the order book holds no keys or funds             |
-| An AI agent pays through the project          | The agent swaps and pays the 402 service from its own wallet                  |
+| Requirement                           | AgentSwap                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------------ |
+| BSV SDK and Wallet Toolbox (ts-stack) | `@bsv/sdk` throughout; wallet-toolbox for the agent's and the server's wallets |
+| A standard BSV wallet for user flows  | `WalletClient` → BSV Desktop / BSV Browser; keys never leave the wallet        |
+| Real transactions                     | Testnet, broadcast through Arcade (links below)                                |
+| Non-custodial                         | Users sign their own swaps; the order book holds no keys or funds              |
+| An AI agent pays through the project  | The agent swaps and pays the 402 service from its own wallet                   |
 
 ## Repository layout
 
@@ -66,13 +66,13 @@ In VS Code: **Terminal → Run Task → dev: all**. Checks: `npm run typecheck` 
 
 ## Example transactions (WhatsOnChain)
 
-| Step                         | Transaction |
-| ---------------------------- | ----------- |
-| USDx deploy and mint         | _tbd_       |
-| Offer listed by a maker      | _tbd_       |
-| Offer filled by a person     | _tbd_       |
-| Agent swap                   | _tbd_       |
-| Agent pays the 402 service   | _tbd_       |
+| Step                       | Transaction |
+| -------------------------- | ----------- |
+| USDx deploy and mint       | _tbd_       |
+| Offer listed by a maker    | _tbd_       |
+| Offer filled by a person   | _tbd_       |
+| Agent swap                 | _tbd_       |
+| Agent pays the 402 service | _tbd_       |
 
 ## Demo
 
@@ -80,9 +80,9 @@ Video (≤ 2:30): _tbd_
 
 ## Team
 
-| Name | Area           |
-| ---- | -------------- |
-| _…_  | On-chain core  |
-| _…_  | Backend        |
-| _…_  | Frontend       |
-| _…_  | AI agent       |
+| Name                    | Area          |
+| ----------------------- | ------------- |
+| @NotBot-Computer        | On-chain core |
+| @efekaansalici07-design | Backend       |
+| @efeberkinaslan07-rgb   | Frontend      |
+| 4th member (tbd)        | AI agent      |
