@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Server (debug)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/apps/server",
+      "runtimeArgs": ["--env-file-if-exists=../../.env", "--import", "tsx"],
+      "program": "${workspaceFolder}/apps/server/src/index.ts",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Agent (debug)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/apps/agent",
+      "runtimeArgs": ["--env-file-if-exists=../../.env", "--import", "tsx"],
+      "program": "${workspaceFolder}/apps/agent/src/index.ts",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Web (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/apps/web"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Server + Agent (debug)",
+      "configurations": ["Server (debug)", "Agent (debug)"]
+    }
+  ]
+}

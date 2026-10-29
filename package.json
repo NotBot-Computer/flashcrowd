@@ -1,0 +1,30 @@
+{
+  "name": "agentswap-bsv",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AgentSwap: non-custodial swap-and-pay rails for AI agents on BSV (TUM Blockchain & AI Hackathon 2026, BSV Association track)",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "dev:server": "npm run dev -w @agentswap/server",
+    "dev:web": "npm run dev -w @agentswap/web",
+    "dev:agent": "npm run dev -w @agentswap/agent",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "prettier": "^3.6.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.0.0"
+  }
+}

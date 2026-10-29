@@ -1,0 +1,5 @@
+# Send these from VS Code with the REST Client extension ("Send Request" above each block).
+@base = http://localhost:8787
+
+### Health
+GET {{base}}/health

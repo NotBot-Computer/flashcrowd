@@ -1,0 +1,16 @@
+{
+  "name": "@agentswap/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@bsv/sdk": "3.2.1"
+  }
+}

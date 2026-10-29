@@ -1,0 +1,24 @@
+{
+  "name": "AgentSwap",
+  "short_name": "AgentSwap",
+  "metanet": {
+    "groupPermissions": {
+      "spendingAuthorization": { "amount": 50000, "description": "Monthly allowance for AgentSwap swaps and agent funding" },
+      "protocolPermissions": [
+        { "protocolID": [1, "agentswap offers"], "description": "Sign AgentSwap offers" },
+        { "protocolID": [2, "3241645161d8"], "counterparty": "self", "description": "BRC-29 payments" }
+      ],
+      "basketAccess": [{ "basket": "agentswap tokens", "description": "AgentSwap token outputs" }]
+    }
+  },
+  "babbage": {
+    "groupPermissions": {
+      "spendingAuthorization": { "amount": 50000, "description": "Monthly allowance for AgentSwap swaps and agent funding" },
+      "protocolPermissions": [
+        { "protocolID": [1, "agentswap offers"], "description": "Sign AgentSwap offers" },
+        { "protocolID": [2, "3241645161d8"], "counterparty": "self", "description": "BRC-29 payments" }
+      ],
+      "basketAccess": [{ "basket": "agentswap tokens", "description": "AgentSwap token outputs" }]
+    }
+  }
+}

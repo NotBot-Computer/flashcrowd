@@ -1,0 +1,20 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Secrets: keys never go into the repo
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Local wallet storage
+*.sqlite
+*.sqlite3
+*.db
+
+# BSV developer pack (download locally; only AGENTS.md is committed, in the root)
+dev-pack/

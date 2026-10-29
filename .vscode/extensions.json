@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens",
+    "vitest.explorer",
+    "humao.rest-client",
+    "yoavbls.pretty-ts-errors",
+    "bierner.markdown-mermaid",
+    "mikestead.dotenv",
+    "anthropic.claude-code"
+  ]
+}
