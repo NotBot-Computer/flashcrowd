@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   addFeedItem,
+  fetchFeedSince,
   fetchHealth,
   loadDashboard,
   subscribeFeed,
@@ -12,13 +13,17 @@ import type { FeedItem } from './model'
 
 export type Source =
   | { kind: 'loading' }
-  | { kind: 'live'; health?: Health; feed: FeedStatus }
+  /** feedPolled: the server answers GET /api/feed/history, so the feed arrives even without the event stream. */
+  | { kind: 'live'; health?: Health; feed: FeedStatus; feedPolled?: boolean }
   /** The server could not be read: the page shows simulation data and why. */
   | { kind: 'simulation'; reason: string }
 
 /** Feed events come in bursts (a group matching, three locks); one reload covers a burst. */
 const RELOAD_DELAY_MS = 600
-/** Reload anyway this often, in case a tunnel holds back the feed's events: a group's steps then still show. */
+/**
+ * Reload anyway this often. A cloudflared tunnel holds back the event stream, so the groups and the feed's history are
+ * read again every 5 s: a group's steps and its events then still show.
+ */
 const POLL_MS = 5_000
 
 /**
@@ -31,6 +36,14 @@ export function useDashboard() {
   const [source, setSource] = useState<Source>({ kind: 'loading' })
   const [attempt, setAttempt] = useState(0)
   const reloadTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  /** The newest feed event seen, from the stream or the history: the next history read starts after it. */
+  const lastEventId = useRef(0)
+
+  const addEvents = useCallback((items: FeedItem[]) => {
+    if (items.length === 0) return
+    lastEventId.current = Math.max(lastEventId.current, ...items.map((i) => i.id))
+    setFeed((current) => items.reduce(addFeedItem, current))
+  }, [])
 
   const reload = useCallback(async () => {
     try {
@@ -39,6 +52,17 @@ export function useDashboard() {
       // Keep what is on screen; the next event or retry tries again.
     }
   }, [])
+
+  const readFeedHistory = useCallback(async () => {
+    try {
+      const items = await fetchFeedSince(lastEventId.current)
+      if (items === undefined) return
+      addEvents(items)
+      setSource((s) => (s.kind === 'live' && !s.feedPolled ? { ...s, feedPolled: true } : s))
+    } catch {
+      // The stream or the next poll tries again.
+    }
+  }, [addEvents])
 
   useEffect(() => {
     let cancelled = false
@@ -51,16 +75,21 @@ export function useDashboard() {
         if (cancelled) return
         setData(live)
         setFeed([])
+        lastEventId.current = 0
         setSource({ kind: 'live', health, feed: 'connecting' })
         unsubscribe = subscribeFeed(
           (item) => {
-            setFeed((items) => addFeedItem(items, item))
+            addEvents([item])
             clearTimeout(reloadTimer.current)
             reloadTimer.current = setTimeout(reload, RELOAD_DELAY_MS)
           },
           (status) => setSource((s) => (s.kind === 'live' ? { ...s, feed: status } : s)),
         )
-        poll = setInterval(reload, POLL_MS)
+        void readFeedHistory()
+        poll = setInterval(() => {
+          void reload()
+          void readFeedHistory()
+        }, POLL_MS)
       })
       .catch((e: unknown) => {
         if (cancelled) return
@@ -76,7 +105,7 @@ export function useDashboard() {
       clearInterval(poll)
       clearTimeout(reloadTimer.current)
     }
-  }, [attempt, reload])
+  }, [attempt, reload, readFeedHistory, addEvents])
 
   const retry = useCallback(() => setAttempt((n) => n + 1), [])
   return { data: data && { ...data, feed }, source, retry }

@@ -53,7 +53,8 @@ export const fetchHealth = (fetchImpl: Fetch = fetch) =>
 export const fetchServices = (fetchImpl: Fetch = fetch) =>
   getJson<ServiceOffer[]>('/api/services', fetchImpl, isList)
 
-export const fetchGroups = (fetchImpl: Fetch = fetch) => getJson<PurchaseGroup[]>('/api/groups', fetchImpl, isList)
+export const fetchGroups = (fetchImpl: Fetch = fetch) =>
+  getJson<PurchaseGroup[]>('/api/groups', fetchImpl, isList)
 
 /** One group with a WhatsOnChain link for every transaction the server knows was sent. */
 export const fetchGroup = (id: string, fetchImpl: Fetch = fetch) =>
@@ -101,6 +102,28 @@ export function subscribeFeed(
     }
   }
   return () => source.close()
+}
+
+const isFeedItem = (v: unknown) => isObject(v) && Number.isSafeInteger(v.id) && typeof v.message === 'string'
+
+/**
+ * GET /api/feed/history?after=<id>: the feed's events after `after` as plain JSON, for when a tunnel holds the event
+ * stream back. undefined while the server has no such route, so the page keeps working on a server without it.
+ */
+export async function fetchFeedSince(
+  after: number,
+  fetchImpl: Fetch = fetch,
+): Promise<FeedItem[] | undefined> {
+  try {
+    return await getJson<FeedItem[]>(
+      `/api/feed/history?after=${after}`,
+      fetchImpl,
+      (b) => Array.isArray(b) && b.every(isFeedItem),
+    )
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return undefined
+    throw e
+  }
 }
 
 const FEED_LIMIT = 200
