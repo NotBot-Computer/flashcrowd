@@ -15,11 +15,25 @@ agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PL
   SQLite storage next to the key file, Arcade (`ARCADE_URL`) as the broadcaster.
 - `npm run wallet:init -w @agentswap/agent -- ~/.agentswap/agent-1.key`: writes a fresh key (mode 600), refuses paths
   inside the repo and existing files, prints the identity key.
+- `src/funding.ts` and `npm run wallet -w @agentswap/agent -- address|sweep|balance <key file> [<txid>.<vout> …]`:
+  test coins go to a deposit address (P2PKH of a key derived from the root key under `[1, 'flashcrowd deposit']`, not
+  the identity key); `sweep` takes mined deposits into the wallet and broadcasts right away, printing WoC links.
+  Not wallet-toolbox's `fundWalletFromP2PKHOutpoints`: it leaves the broadcast to the wallet's Monitor, so without one
+  the sweep shows in the balance but never reaches the network.
 
 Tests: `npm test -w @agentswap/agent`, on wallet-toolbox's mock chain with a test-only in-process coordinator and mock
 seller (`test/helpers/localCoordinator.ts`, not the server): three agents buy a 12,000-sat dataset and decrypt it; an
 agent whose policy rejects the terms signs nothing; the budget caps the offer; with no claim, two agents refund after
-the refund height. No testnet transaction yet.
+the refund height; deposits are swept, an output to another address, a second sweep and an unmined deposit are
+refused. No testnet transaction yet.
 
-Next: the `AuthFetch` coordinator against apps/server, `npm run dev:agent -- --agents 3`, funding the agent wallets
-on testnet, feed events with WoC links, optional LLM narration.
+Funding an agent on testnet:
+
+```bash
+npm run wallet:init -w @agentswap/agent -- ~/.agentswap/agent-1.key
+npm run wallet -w @agentswap/agent -- address ~/.agentswap/agent-1.key   # send test coins here
+npm run wallet -w @agentswap/agent -- sweep ~/.agentswap/agent-1.key <txid>.<vout>   # after one confirmation
+```
+
+Next: the `AuthFetch` coordinator against apps/server, `npm run dev:agent -- --agents 3`, feed events with WoC links,
+optional LLM narration.
