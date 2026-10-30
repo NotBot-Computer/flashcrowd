@@ -1,6 +1,8 @@
 # Architecture
 
-Draft written before the event. P1–P4 refine it while they build.
+> **Superseded.** This draft describes our first idea, AgentSwap (BSV-21 swap offers, an order book and an HTTP 402
+> service). On 30 October the team switched to FlashCrowd. For the current design see the [README](../README.md) and
+> [FLASHCROWD_TASK.md](FLASHCROWD_TASK.md).
 
 ## Components
 

@@ -1,5 +1,9 @@
 # FlashCrowd: inceleme ve 4 kişilik görev planı
 
+> **Not (30 Ekim akşamı).** Bu plan FlashCrowd'a geçerken yazıldı ve olduğu gibi duruyor. Planda geçen "testnet"
+> adımları mainnet'te yapıldı, çünkü görevlilerde testnet coin yoktu (ağı `BSV_NETWORK` seçer). Güncel durum ve
+> işlem linkleri için [README](../README.md)'ye, adımların sonuçları için issue'lara bakın.
+
 Oct 30, 2026 · @Efe
 
 ## Özet

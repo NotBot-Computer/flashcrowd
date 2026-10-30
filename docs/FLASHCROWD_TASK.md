@@ -1,5 +1,10 @@
 # TASK: Convert the agentswap-bsv repo to FlashCrowd (BSV track, TUM Blockchain & AI Hackathon 2026)
 
+> **Note (30 October, evening).** This brief was written at the switch to FlashCrowd and is kept as written. Two
+> things are out of date: "Testnet only" (the organizers had no testnet coins, so every transaction ran on mainnet;
+> `BSV_NETWORK` picks the network) and "Actual repo state" (the repo before FlashCrowd). The design and the hard
+> technical facts still hold. For the current state and the transactions, see the [README](../README.md).
+
 Repo: NotBot-Computer/agentswap-bsv (local checkout). Read AGENTS.md, CLAUDE.md, docs/ARCHITECTURE.md, docs/TEAM.md
 first. AGENTS.md package versions are fixed (@bsv/sdk 3.2.1, @bsv/wallet-toolbox 2.14.9). Testnet only. Never ask
 for, log or commit private keys; key files live outside the repo. Do not add AI co-author lines to commits/PRs.
