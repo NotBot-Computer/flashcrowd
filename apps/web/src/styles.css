@@ -191,6 +191,42 @@ button.secondary {
   font-size: 14px;
 }
 
+.notice p {
+  margin: 0;
+}
+
+.notice .notice-reason {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.notice button {
+  margin-top: 10px;
+  font-size: 14px;
+  padding: 6px 12px;
+}
+
+.source-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+.source-bar .badge {
+  font-size: 12px;
+}
+
+.source-warning {
+  color: #8a5300;
+}
+
+.empty {
+  margin: 0;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;

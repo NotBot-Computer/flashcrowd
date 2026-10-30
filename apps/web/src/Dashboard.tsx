@@ -14,33 +14,60 @@ import {
 } from './model'
 
 /** The FlashCrowd dashboard: services, purchase groups and the live feed. Reading needs no wallet. */
-export function Dashboard({ data }: { data: DashboardData }) {
+export function Dashboard({
+  data,
+  simulationReason,
+  onRetry,
+}: {
+  data: DashboardData
+  /** Why the page fell back to simulation data, e.g. the server is unreachable. */
+  simulationReason?: string
+  onRetry?: () => void
+}) {
   const titleOf = (serviceId: string) => data.services.find((s) => s.id === serviceId)?.title ?? serviceId
   return (
     <div className="dashboard">
       {data.simulation && (
-        <p className="notice" role="note">
-          <strong>Simulation.</strong> This is sample data, not from the server. Nothing here is on chain, so no
-          transaction links are shown.
-        </p>
+        <div className="notice" role="note">
+          <p>
+            <strong>Simulation.</strong> This is sample data, not from the server. Nothing here is on chain, so no
+            transaction links are shown.
+          </p>
+          {simulationReason && <p className="notice-reason">Reason: {simulationReason}</p>}
+          {onRetry && (
+            <button className="secondary" onClick={onRetry}>
+              Retry the server
+            </button>
+          )}
+        </div>
       )}
       <div className="dashboard-grid">
         <div className="dashboard-main">
           <section className="panel">
             <h2>Services</h2>
-            <ul className="services">
-              {data.services.map((s) => (
-                <ServiceRow key={s.id} service={s} />
-              ))}
-            </ul>
+            {data.services.length === 0 ? (
+              <p className="muted">No services yet.</p>
+            ) : (
+              <ul className="services">
+                {data.services.map((s) => (
+                  <ServiceRow key={s.id} service={s} />
+                ))}
+              </ul>
+            )}
           </section>
           <section>
             <h2 className="section-title">Purchase groups</h2>
-            <div className="groups">
-              {data.groups.map((g) => (
-                <GroupCard key={g.id} group={g} title={titleOf(g.serviceId)} simulation={data.simulation} />
-              ))}
-            </div>
+            {data.groups.length === 0 ? (
+              <p className="panel muted empty">
+                No purchase groups yet. A group appears when agents post intents for a service.
+              </p>
+            ) : (
+              <div className="groups">
+                {data.groups.map((g) => (
+                  <GroupCard key={g.id} group={g} title={titleOf(g.serviceId)} simulation={data.simulation} />
+                ))}
+              </div>
+            )}
           </section>
         </div>
         <FeedPanel items={data.feed} />

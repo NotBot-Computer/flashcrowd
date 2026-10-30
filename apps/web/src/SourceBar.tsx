@@ -1,0 +1,20 @@
+import type { Source } from './useDashboard'
+
+const FEED_LABEL = { connecting: 'Feed connecting…', open: 'Feed connected', reconnecting: 'Feed reconnecting…' }
+
+/** Where the dashboard's data comes from right now. Simulation is explained by the dashboard's own notice. */
+export function SourceBar({ source }: { source: Source }) {
+  if (source.kind === 'loading') return <p className="source-bar muted">Loading from the server…</p>
+  if (source.kind === 'simulation') return null
+  return (
+    <p className="source-bar">
+      <span className="badge tone-success">Live</span>
+      {source.health && (
+        <span className="muted">
+          {source.health.network} · block {source.health.height.toLocaleString('en')}
+        </span>
+      )}
+      <span className={source.feed === 'open' ? 'muted' : 'source-warning'}>{FEED_LABEL[source.feed]}</span>
+    </p>
+  )
+}

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Dashboard } from './Dashboard'
-import { mockData } from './mock'
+import { SourceBar } from './SourceBar'
+import { useDashboard } from './useDashboard'
 import { connectWallet, type Session } from './wallet'
 import { WalletChecks } from './WalletChecks'
 
@@ -13,8 +14,7 @@ export function App() {
   const [error, setError] = useState<string>()
   const [connecting, setConnecting] = useState(false)
   const [page, setPage] = useState<Page>(pageFromHash)
-  // Simulation data until the dashboard reads apps/server (session 4).
-  const data = useMemo(() => mockData(), [])
+  const { data, source, retry } = useDashboard()
 
   useEffect(() => {
     const onHash = () => setPage(pageFromHash())
@@ -60,7 +60,18 @@ export function App() {
       </header>
       <main>
         {error && <p role="alert">{error}</p>}
-        {page === 'dashboard' && <Dashboard data={data} />}
+        {page === 'dashboard' && (
+          <>
+            <SourceBar source={source} />
+            {data && (
+              <Dashboard
+                data={data}
+                simulationReason={source.kind === 'simulation' ? source.reason : undefined}
+                onRetry={source.kind === 'simulation' ? retry : undefined}
+              />
+            )}
+          </>
+        )}
         {page === 'checks' &&
           (session ? (
             <WalletChecks ctx={session} />
