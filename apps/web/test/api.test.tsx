@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   addFeedItem,
   ApiError,
+  fetchFeedSince,
   fetchGroup,
   fetchServices,
   loadDashboard,
@@ -31,7 +32,10 @@ const [older, newer] = [sample.groups[2], sample.groups[0]]
 describe('loadDashboard', () => {
   it('reads services and every group with its transactions, newest group first', async () => {
     const txid = 'ef'.repeat(32)
-    const withTx = { ...older, transactions: [{ kind: 'claim', txid, wocUrl: `https://whatsonchain.com/tx/${txid}` }] }
+    const withTx = {
+      ...older,
+      transactions: [{ kind: 'claim', txid, wocUrl: `https://whatsonchain.com/tx/${txid}` }],
+    }
     const fetchImpl = server({
       '/api/services': () => json(sample.services),
       '/api/groups': () => json([older, newer].map(({ transactions: _, ...g }) => g)),
@@ -67,7 +71,9 @@ describe('errors', () => {
   })
 
   it('rejects a page that is not JSON, like a proxy error page', async () => {
-    const fetchImpl = server({ '/api/services': () => new Response('<html>Bad gateway</html>', { status: 502 }) })
+    const fetchImpl = server({
+      '/api/services': () => new Response('<html>Bad gateway</html>', { status: 502 }),
+    })
     await expect(fetchServices(fetchImpl)).rejects.toThrow('did not return JSON (HTTP 502)')
   })
 
@@ -116,8 +122,37 @@ describe('subscribeFeed', () => {
   })
 })
 
+describe('fetchFeedSince', () => {
+  const event = (id: number) => ({ id, type: 'group', message: `event ${id}`, at: '2026-10-31T10:00:00Z' })
+
+  it('asks for the events after the last one seen', async () => {
+    const fetchImpl = server({ '/api/feed/history?after=7': () => json([event(8), event(9)]) })
+    expect((await fetchFeedSince(7, fetchImpl))?.map((e) => e.id)).toEqual([8, 9])
+    expect(fetchImpl).toHaveBeenCalledWith('/api/feed/history?after=7', expect.anything())
+  })
+
+  it('is undefined on a server without the route, so the page carries on without it', async () => {
+    expect(await fetchFeedSince(0, server({}))).toBeUndefined()
+  })
+
+  it('rejects anything that is not a list of events', async () => {
+    const fetchImpl = server({ '/api/feed/history?after=0': () => json([{ id: 'one', message: 'x' }]) })
+    await expect(fetchFeedSince(0, fetchImpl)).rejects.toThrow('unexpected shape')
+  })
+
+  it('passes on other server errors', async () => {
+    const fetchImpl = server({ '/api/feed/history?after=0': () => json({ error: 'boom' }, 500) })
+    await expect(fetchFeedSince(0, fetchImpl)).rejects.toThrow('boom')
+  })
+})
+
 describe('addFeedItem', () => {
-  const item = (id: number): FeedItem => ({ id, type: 'group', message: `event ${id}`, at: '2026-10-31T10:00:00Z' })
+  const item = (id: number): FeedItem => ({
+    id,
+    type: 'group',
+    message: `event ${id}`,
+    at: '2026-10-31T10:00:00Z',
+  })
 
   it('keeps each event once, in id order', () => {
     const items = [item(2), item(5)].reduce(addFeedItem, [item(1)])
@@ -152,10 +187,20 @@ describe('what the page shows about its source', () => {
 
   it('shows network, height and feed state for live data', () => {
     const html = renderToStaticMarkup(
-      <SourceBar source={{ kind: 'live', health: { ok: true, network: 'mainnet', height: 973333 }, feed: 'open' }} />,
+      <SourceBar
+        source={{ kind: 'live', health: { ok: true, network: 'mainnet', height: 973333 }, feed: 'open' }}
+      />,
     )
     expect(html).toContain('Live')
     expect(html).toContain('mainnet · block 973,333')
     expect(html).toContain('Feed connected')
+  })
+
+  it('says the feed arrives every 5 s when only the history route works', () => {
+    const html = renderToStaticMarkup(
+      <SourceBar source={{ kind: 'live', feed: 'reconnecting', feedPolled: true }} />,
+    )
+    expect(html).toContain('Feed every 5 s')
+    expect(html).not.toContain('source-warning')
   })
 })
