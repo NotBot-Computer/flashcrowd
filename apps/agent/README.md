@@ -26,6 +26,10 @@ agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PL
   prints each agent's identity, deposit address and whether its balance covers its offer plus fees. Without `--check`
   every agent buys from the server at `SERVER_URL` at the same time (`runAgents`), and each result is printed with
   WhatsOnChain links; it stops first if an agent lacks funds.
+- `src/receive.ts` and `npm run wallet -w @agentswap/agent -- receive <key file> <payment file>`: the web app's "Fund the
+  agent" pays the agent's identity key with BRC-29 and downloads a payment file (`kind: "flashcrowd agent funding"`).
+  The agent refuses a file for another agent or another network, checks the payment with SPV against Arcade and that
+  it is locked to its own key (core's `acceptBrc29Payment`), takes it in and prints the sats, txid and WoC link.
 - `src/ledger.ts`: each agent's committed sats in `agent-N.<network>.spent.json` next to its key file, so `maxTotalSats` holds
   across runs. A share counts once its funding is broadcast; a refunded share stops counting.
 - After funding, the agent never walks away from locked money: if the coordinator is unreachable it keeps asking, and
