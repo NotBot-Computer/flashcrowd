@@ -9,5 +9,5 @@
       "@bsv/sdk": ["../../node_modules/@bsv/sdk/dist/cjs/mod.d.ts"]
     }
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "scripts"]
 }

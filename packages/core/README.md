@@ -103,3 +103,25 @@ interface CoreContext {
 
 The transaction layout, the overlay and the key choices are in
 [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#atomic-offer).
+
+## Testnet check
+
+`scripts/testnet-htlc.ts` runs the HTLC on testnet with three wallet-toolbox wallets (seller, buyer-1, buyer-2) whose
+key files and SQLite databases live in `~/.agentswap/htlc`, outside the repo. Arcade is the first broadcaster; the
+script refuses `BSV_NETWORK=mainnet`.
+
+```bash
+npm run testnet:htlc -w @agentswap/core -- init                  # key files, identity keys, buyer-1's deposit address
+npm run testnet:htlc -w @agentswap/core -- sweep <txid>.<vout>   # a mined deposit into buyer-1's wallet
+npm run testnet:htlc -w @agentswap/core -- run                   # a), b) and c) below, then a table for issue #2
+npm run testnet:htlc -w @agentswap/core -- refund                # refunds what is left, after refundHeight
+```
+
+- a) Two buyers fund group A and the seller, with an empty wallet, claims it.
+- b) buyer-1 funds group B and sends its refund to Arcade before refundHeight: rejected, or held with the claim
+  still passing or blocked. The refund pays ten times the wallets' fee rate; a refusal for the fee is reported as
+  inconclusive, not as rejected.
+- c) buyer-2 refunds group C after its refundHeight (start height + 1).
+
+`run` needs about 5,500 sats in buyer-1's wallet and pays buyer-2 its part over BRC-29. Every step updates
+`~/.agentswap/htlc/state.json` (terms, contributions, txids; no keys or secrets).
