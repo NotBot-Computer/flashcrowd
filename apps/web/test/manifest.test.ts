@@ -33,6 +33,11 @@ describe('manifest.json', () => {
       expect(protocols).toContainEqual(BRC29_PROTOCOL)
     })
 
+    it('does not tie BRC-29 to one counterparty: the user pays agents it does not know in advance', () => {
+      const brc29 = permissions.protocolPermissions.find((p) => p.protocolID[1] === BRC29_PROTOCOL[1])
+      expect(brc29?.counterparty).toBeUndefined()
+    })
+
     it('uses protocol and basket names the wallet accepts', () => {
       const names = [...protocols.map(([, name]) => name), ...(permissions.basketAccess ?? []).map(b => b.basket)]
       for (const name of names) expect(name).toMatch(/^[a-z0-9]+( [a-z0-9]+)*$/)

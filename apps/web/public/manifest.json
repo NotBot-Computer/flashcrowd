@@ -7,7 +7,7 @@
       "protocolPermissions": [
         { "protocolID": [1, "flashcrowd htlc"], "description": "Lock and claim FlashCrowd group payments" },
         { "protocolID": [1, "flashcrowd terms"], "description": "Sign FlashCrowd group terms" },
-        { "protocolID": [2, "3241645161d8"], "counterparty": "self", "description": "BRC-29 payments" }
+        { "protocolID": [2, "3241645161d8"], "description": "Pay an agent with BRC-29" }
       ]
     }
   },
@@ -17,7 +17,7 @@
       "protocolPermissions": [
         { "protocolID": [1, "flashcrowd htlc"], "description": "Lock and claim FlashCrowd group payments" },
         { "protocolID": [1, "flashcrowd terms"], "description": "Sign FlashCrowd group terms" },
-        { "protocolID": [2, "3241645161d8"], "counterparty": "self", "description": "BRC-29 payments" }
+        { "protocolID": [2, "3241645161d8"], "description": "Pay an agent with BRC-29" }
       ]
     }
   }
