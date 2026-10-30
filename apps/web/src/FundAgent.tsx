@@ -37,10 +37,9 @@ export function FundAgent({ session, serverNetwork }: { session?: Session; serve
 
   if (session === undefined) {
     return (
-      <section className="panel fund">
-        <h2>Fund an agent</h2>
+      <div className="fund">
         <p className="muted">Connect your wallet to pay an agent's identity key from BSV Desktop.</p>
-      </section>
+      </div>
     )
   }
 
@@ -65,11 +64,10 @@ export function FundAgent({ session, serverNetwork }: { session?: Session; serve
   }
 
   return (
-    <section className="panel fund">
-      <h2>Fund an agent</h2>
+    <div className="fund">
       <p className="muted">
-        Pays the agent's identity key from your wallet with BRC-29. The page then saves a payment file: the agent
-        takes the payment in with it.
+        Pays the agent's identity key from your wallet with BRC-29. The page then saves a payment file: the
+        agent takes the payment in with it.
       </p>
 
       <div className="fund-form">
@@ -108,7 +106,8 @@ export function FundAgent({ session, serverNetwork }: { session?: Session; serve
       {state.step === 'sent' && (
         <div className="fund-result">
           <p>
-            <strong>Sent {formatSats(state.file.satoshis)}</strong> to {shortKey(state.file.recipientIdentityKey)}
+            <strong>Sent {formatSats(state.file.satoshis)}</strong> to{' '}
+            {shortKey(state.file.recipientIdentityKey)}
             {' · '}
             <a href={state.file.wocUrl} target="_blank" rel="noreferrer">
               WhatsOnChain
@@ -117,7 +116,9 @@ export function FundAgent({ session, serverNetwork }: { session?: Session; serve
           <p>
             The payment file <code>{paymentFileName(state.file)}</code> has downloaded. Give it to the agent's
             operator: the agent cannot see the payment without it.
-            {state.savedInBrowser ? ' A copy is kept in this browser.' : ' This browser could not keep a copy.'}
+            {state.savedInBrowser
+              ? ' A copy is kept in this browser.'
+              : ' This browser could not keep a copy.'}
           </p>
           <div className="actions">
             <button className="secondary" onClick={() => download(state.file)}>
@@ -150,6 +151,6 @@ export function FundAgent({ session, serverNetwork }: { session?: Session; serve
           </ul>
         </details>
       )}
-    </section>
+    </div>
   )
 }
