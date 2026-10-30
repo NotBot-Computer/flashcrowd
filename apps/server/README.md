@@ -81,9 +81,9 @@ so an agent cannot fake a claim in the feed. Never take a `wocUrl` from a client
   agents post new ones.
 - **Small intents.** `matchIntents` fails outright when a share would fall below 1,000 sats. The server leaves the
   smallest intent out and tries again, so it cannot block a service. It stays open for a later group.
-- **`refund_available` comes one block after `refundHeight`.** wallet-toolbox refuses a transaction until
-  `nLockTime < height`, while core's state machine opens refunds at `height >= refundHeight`.
-- **Claim margin.** The seller stops claiming 2 blocks before `refundHeight`.
+- **`refund_available` comes one block after `refundHeight`.** core's state machine waits for it, because wallet-toolbox
+  refuses a transaction until `nLockTime < height`.
+- **Claim margin.** `claimContributions` stops 2 blocks before `refundHeight` (`CLAIM_MARGIN_BLOCKS` in core).
 - **Claim failures.** Network errors are retried by the 30-second ticker, 3 attempts in all; then `settlement_failed`.
 - **Expiry.** With no refund signature issued the group is `expired`. After one, a buyer may have broadcast, so the group
   becomes `funding_failed` and waits for the refund height.

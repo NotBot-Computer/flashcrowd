@@ -1,6 +1,7 @@
 // The mock seller: a separate party with its own wallet and one simulation dataset. It keeps a fresh secret K per
 // group until it claims. K never enters the coordinator's state, so no API response can leak it before the claim.
 import {
+  CLAIM_MARGIN_BLOCKS,
   claimContributions,
   encryptResource,
   htlcKey,
@@ -30,12 +31,6 @@ const DATASET = JSON.stringify({
 const SERVICE_ID = 'bsv-usd-closes'
 const RESOURCE_ID = 'bsvusd-2026-10'
 const PRICE_SATS = 12_000
-
-/**
- * The seller stops claiming this many blocks before refundHeight, so a claim is not still waiting for a block when
- * refunds become valid. claimContributions itself only refuses from refundHeight on.
- */
-export const CLAIM_MARGIN_BLOCKS = 2
 
 export interface SellerOptions {
   /** refundHeight = height at matching + lockBlocks. */
@@ -121,14 +116,11 @@ export class MockSeller {
   }
 
   /** Claims every contribution of a locked group in one transaction, which reveals K on chain. */
-  async claim(group: PurchaseGroup, height: number): Promise<ClaimProof & { beef: string }> {
+  async claim(group: PurchaseGroup): Promise<ClaimProof & { beef: string }> {
     const terms = group.terms
     const secret = this.secrets.get(group.id)
     if (terms === undefined || secret === undefined)
       throw new InvalidHtlcError('no terms or key for this group')
-    if (height >= terms.refundHeight - CLAIM_MARGIN_BLOCKS) {
-      throw new InvalidHtlcError(`too close to refunds: height ${height}, refunds from ${terms.refundHeight}`)
-    }
     const contributions = group.participants.flatMap((p) => p.contribution ?? [])
     return await claimContributions(this.ctx, terms, Utils.toArray(secret, 'hex'), contributions)
   }

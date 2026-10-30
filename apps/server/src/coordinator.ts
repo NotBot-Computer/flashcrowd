@@ -43,13 +43,6 @@ const MAX_EVENT_LENGTH = 500
 const MAX_CLAIM_ATTEMPTS = 3
 const FINISHED: GroupStatus[] = ['claimed', 'expired', 'refunded']
 
-/**
- * The height to give advanceGroup. The state machine opens refunds at refundHeight, but wallet-toolbox only accepts
- * a transaction once nLockTime < height: one block later, about 10 minutes on testnet. Reporting refunds any earlier
- * would send every buyer into a "not final" error.
- */
-const refundableAt = (height: number): number => height - 1
-
 const short = (key: string): string => `${key.slice(0, 10)}…`
 const outpointOf = (c: FundingContribution): string => `${c.txid}.${c.vout}`
 const intentIdsOf = (g: PurchaseGroup): string[] => g.participants.map((p) => p.intentId)
@@ -387,7 +380,7 @@ export class Coordinator {
       }
       let proof: Awaited<ReturnType<MockSeller['claim']>>
       try {
-        proof = await this.seller.claim(group, await this.currentHeight())
+        proof = await this.seller.claim(group)
       } catch (e) {
         const attempts = (this.claimAttempts.get(groupId) ?? 0) + 1
         this.claimAttempts.set(groupId, attempts)
@@ -414,7 +407,7 @@ export class Coordinator {
     return await this.locked(groupId, async () => {
       let group = advanceGroup(this.requireGroup(groupId), {
         type: 'height',
-        height: refundableAt(await this.currentHeight()),
+        height: await this.currentHeight(),
       })
       const contribution = group.participants.find((p) => p.identityKey === identityKey)?.contribution
       if (contribution === undefined) throw new HttpError(403, 'no contribution of this buyer in this group')
@@ -520,7 +513,7 @@ export class Coordinator {
       }
     }
     if (height !== undefined) {
-      const next = advanceGroup(group, { type: 'height', height: refundableAt(height) })
+      const next = advanceGroup(group, { type: 'height', height })
       if (next.status !== group.status) {
         this.store.putGroup(next)
         this.feed.publish({ type: 'refund', message: `group ${id}: refunds are available from now on` })
