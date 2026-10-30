@@ -44,7 +44,8 @@ if (notReady.length > 0) {
 
 const open: AgentWallet[] = []
 try {
-  for (const agent of settings.agents) open.push(await openAgentWallet({ keyFile: agent.keyFile, network }))
+  for (const agent of settings.agents)
+    open.push(await openAgentWallet({ keyFile: agent.keyFile, network, monitor: true }))
   const outcomes = await runAgents(
     settings.agents.map((agent, i) => ({
       ctx: { wallet: open[i].wallet, network },
