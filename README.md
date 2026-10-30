@@ -66,13 +66,19 @@ In VS Code: **Terminal → Run Task → dev: all**. Checks: `npm run typecheck` 
 
 ## Example transactions (WhatsOnChain)
 
-| Step                       | Transaction |
-| -------------------------- | ----------- |
-| USDx deploy and mint       | _tbd_       |
-| Offer listed by a maker    | _tbd_       |
-| Offer filled by a person   | _tbd_       |
-| Agent swap                 | _tbd_       |
-| Agent pays the 402 service | _tbd_       |
+Mainnet, from the FlashCrowd HTLC check on 30 October 2026 (`packages/core/scripts/testnet-htlc.ts`, start height
+973331; details in issue #2). The fundings and claims are in block 973332.
+
+| Step                                                                                   | Transaction                                                                                               |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Buyer 1 funds its HTLC share (group A)                                                 | [cc88b393…](https://whatsonchain.com/tx/cc88b393308432becf12c66bcf6c1d4713601585ca0fa7cdbc036fffe997a35c) |
+| Buyer 2 funds its HTLC share (group A)                                                 | [233452df…](https://whatsonchain.com/tx/233452df45ced2061c88d5fd0f627cca7212b4ccfb5b2f628da1286d24357dfa) |
+| Seller claims both shares in one transaction and reveals the key (empty seller wallet) | [4262eb55…](https://whatsonchain.com/tx/4262eb55d451028c2af27549bcbe0134fe366cbc07db05e0182c08c9d482571f) |
+| Refund before refundHeight: refused by the network (nLockTime in the future)           | `edf04c52…`, never accepted                                                                               |
+| Seller's claim after the refused refund (group B)                                      | [ab6cf9da…](https://whatsonchain.com/tx/ab6cf9da48402af97a9ccd10d826904b361ad78866e47892702963f58e8ec505) |
+| Buyer refunds its share after refundHeight (group C)                                   | [99de9895…](https://whatsonchain.com/tx/99de9895b6f1e2214341f0a5055e3ff379737d05a7853f615365aa53043601d0) |
+| User funds the agent from BSV Desktop                                                  | _tbd_                                                                                                     |
+| Three agents fund one group (demo)                                                     | _tbd_                                                                                                     |
 
 ## Demo
 
