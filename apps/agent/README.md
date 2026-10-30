@@ -1,20 +1,25 @@
 # apps/agent (P4)
 
-The AI agent: its own BRC-100 wallet, a hard spend policy, and tools to find offers, swap and pay per call.
+FlashCrowd agents: each has its own BRC-100 wallet, a hard spend policy, and buys a dataset together with other
+agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PLAN.md](../../docs/FLASHCROWD_PLAN.md).
 
-Run `npm run dev:agent` from the repo root. It reads the root `.env`.
+- `src/flow.ts`: `runPurchase`, one purchase, step by step: search → intent → match → evaluate → authorize → fund →
+  settle → decrypt, or refund. Deterministic: `verifyTerms` and `checkSpend` / `assertSpend` decide before anything is
+  signed, and the funding is broadcast only with a valid refund signature from the seller. Once funded, the agent
+  waits for the claim or the refund height; it never walks away from locked money. An LLM may narrate the steps but
+  never decides an amount or a signature.
+- `src/coordinator.ts`: what the agent needs from the server, one method per endpoint of the plan's API table
+  (`GET /api/intents/:id` is added so the agent finds its group). To agree with P2; the HTTP client with `AuthFetch`
+  (BRC-103) comes once the server has the endpoints.
+- `src/wallet.ts`: `openAgentWallet({ keyFile, network })`, a wallet-toolbox wallet from a key file outside the repo,
+  SQLite storage next to the key file, Arcade (`ARCADE_URL`) as the broadcaster.
+- `npm run wallet:init -w @agentswap/agent -- ~/.agentswap/agent-1.key`: writes a fresh key (mode 600), refuses paths
+  inside the repo and existing files, prints the identity key.
 
-To build during the event (issue #5):
+Tests: `npm test -w @agentswap/agent`, on wallet-toolbox's mock chain with a test-only in-process coordinator and mock
+seller (`test/helpers/localCoordinator.ts`, not the server): three agents buy a 12,000-sat dataset and decrypt it; an
+agent whose policy rejects the terms signs nothing; the budget caps the offer; with no claim, two agents refund after
+the refund height. No testnet transaction yet.
 
-- **Wallet:** a server-side wallet from the agent's own root key (`@bsv/simple/server` or `@bsv/wallet-toolbox`, at
-  the versions pinned in AGENTS.md). The key file lives outside the repo (`AGENT_KEY_FILE`). The user funds it from
-  BSV Desktop on the web app's Agent page.
-- **Spend policy:** `SpendPolicy` from packages/core, checked in code before every signature (per-transaction cap,
-  per-task cap, host allowlist). The LLM cannot override it.
-- **Tools:** `get_balance`, `find_offers` (`GET /api/quote`), `swap` (core `fillOffer`), `call_paid_api`
-  (`create402Fetch` from `@bsv/402-pay/client`), `report` (`POST /api/events`).
-- **LLM loop:** the Claude API Tool Runner, `client.beta.messages.toolRunner()` with tools defined through
-  `betaZodTool` from `@anthropic-ai/sdk/helpers/beta/zod`. Model `claude-opus-5-5` with adaptive thinking; set
-  `output_config.effort` explicitly (its default is `medium`). Turn on server-side refusal fallbacks
-  (`fallbacks: "default"` with the `server-side-fallback-2026-07-01` beta).
-- **First goal (M1):** the agent pays the 402 service in sats, which gives the first agent-payment WoC link.
+Next: the `AuthFetch` coordinator against apps/server, `npm run dev:agent -- --agents 3`, funding the agent wallets
+on testnet, feed events with WoC links, optional LLM narration.

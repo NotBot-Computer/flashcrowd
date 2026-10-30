@@ -1,0 +1,242 @@
+// One purchase by one agent, step by step (docs/FLASHCROWD_PLAN.md, P4). Deterministic: the amount and every
+// signature are decided here under the spend policy, never by an LLM. The on-chain steps are packages/core
+// functions; the coordinator only carries messages.
+//
+// search -> intent -> match -> evaluate -> authorize -> fund -> settle -> decrypt | refund
+//
+// Nothing is signed before the terms pass verifyTerms and assertSpend, and the funding is broadcast only with a valid
+// refund signature from the seller. Once funded, the agent never gives up: it waits for the claim or the refund.
+import {
+  abandonContribution,
+  assertSpend,
+  broadcastContribution,
+  checkSpend,
+  decryptResource,
+  MIN_CONTRIBUTION_SATS,
+  prepareContribution,
+  refundContribution,
+  secretFromClaim,
+  verifyRefundSignature,
+  verifyTerms,
+  type GroupStatus,
+  type HtlcContext,
+  type HtlcTerms,
+  type PurchaseGroup,
+  type SpendPolicy,
+} from '@agentswap/core'
+import { Hash, Utils } from '@bsv/sdk'
+import type { Coordinator } from './coordinator'
+
+export interface AgentConfig {
+  name: string
+  policy: SpendPolicy
+  serviceId: string
+  resourceId: string
+  /** The most this agent offers; also capped by the policy. */
+  maxContributionSats: number
+  /** How long the intent stays open. */
+  intentTtlMs: number
+  pollMs: number
+  /** How long to wait for a group and for the others to authorize. Never applies once funded. */
+  matchTimeoutMs: number
+}
+
+export type AgentStep =
+  | 'search'
+  | 'intent'
+  | 'match'
+  | 'evaluate'
+  | 'authorize'
+  | 'fund'
+  | 'settle'
+  | 'decrypt'
+  | 'refund'
+  | 'refuse'
+
+export interface AgentDeps {
+  ctx: HtlcContext
+  coordinator: Coordinator
+  /** What this agent has committed before this purchase. */
+  spentSats: number
+  log?: (step: AgentStep, message: string, txid?: string) => void
+  sleep?: (ms: number) => Promise<void>
+  now?: () => number
+}
+
+export type PurchaseOutcome =
+  | {
+      status: 'decrypted'
+      groupId: string
+      shareSats: number
+      fundingTxid: string
+      claimTxid: string
+      data: number[]
+    }
+  | { status: 'refunded'; groupId: string; shareSats: number; fundingTxid: string; refundTxid: string }
+  /** Refused before signing anything. */
+  | { status: 'refused'; reason: string; groupId?: string }
+  /** No group, or the group never committed; nothing was paid. */
+  | { status: 'unmatched'; reason: string; groupId?: string }
+
+const COMMITTED: GroupStatus[] = ['committed', 'funding', 'locked', 'claimed']
+const GAVE_UP: GroupStatus[] = ['expired', 'funding_failed']
+
+export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise<PurchaseOutcome> {
+  const { ctx, coordinator } = deps
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)))
+  const now = deps.now ?? Date.now
+  const log = async (step: AgentStep, message: string, txid?: string): Promise<void> => {
+    deps.log?.(step, `${config.name}: ${message}`, txid)
+    await coordinator.report({ message: `${config.name}: ${message}`, txid }).catch(() => undefined)
+  }
+  const refuse = async (reason: string, groupId?: string): Promise<PurchaseOutcome> => {
+    await log('refuse', `refused: ${reason}`)
+    return { status: 'refused', reason, groupId }
+  }
+  const identityKey = (await ctx.wallet.getPublicKey({ identityKey: true }, ctx.originator)).publicKey
+  const height = async (): Promise<number> => (await ctx.wallet.getHeight({}, ctx.originator)).height
+  const { policy } = config
+
+  // searchServices
+  const service = (await coordinator.services()).find(
+    (s) => s.id === config.serviceId && s.resourceId === config.resourceId && s.network === ctx.network,
+  )
+  if (service === undefined) return await refuse(`no ${config.serviceId} / ${config.resourceId} on offer`)
+  if (!policy.allowedServiceIds.includes(service.id))
+    return await refuse(`service ${service.id} is not allowed`)
+  if (service.license !== 'shared-within-group')
+    return await refuse('the result may not be shared in a group')
+  const offer = Math.min(
+    config.maxContributionSats,
+    policy.maxPerPurchaseSats,
+    policy.maxTotalSats - deps.spentSats,
+  )
+  if (!Number.isSafeInteger(offer) || offer < MIN_CONTRIBUTION_SATS) {
+    return await refuse(`the policy leaves ${offer} sats, below ${MIN_CONTRIBUTION_SATS}`)
+  }
+  await log('search', `wants "${service.title}" (${service.priceSats} sats), offers up to ${offer}`)
+
+  // createPurchaseIntent
+  const intent = await coordinator.createIntent({
+    network: ctx.network,
+    serviceId: service.id,
+    resourceId: service.resourceId,
+    maxContributionSats: offer,
+    expiresAt: now() + config.intentTtlMs,
+  })
+  await log('intent', `intent ${intent.id} published`)
+
+  // findMatchingGroup: wait for a group with signed terms.
+  const deadline = now() + config.matchTimeoutMs
+  let groupId: string | undefined
+  let group: PurchaseGroup | undefined
+  while (group?.terms === undefined) {
+    if (now() > deadline) return { status: 'unmatched', reason: 'no group with terms in time', groupId }
+    const state = await coordinator.intent(intent.id)
+    if (state.intent.status === 'expired')
+      return { status: 'unmatched', reason: 'the intent expired', groupId }
+    groupId = state.groupId
+    if (groupId !== undefined) group = await coordinator.group(groupId)
+    if (group?.terms === undefined) await sleep(config.pollMs)
+  }
+  const terms: HtlcTerms = group.terms
+  const ciphertext = group.ciphertext
+  await log('match', `matched into ${group.id} with ${group.participants.length} agents`)
+
+  // evaluatePurchase: the seller's signature, our share, the policy.
+  try {
+    await verifyTerms(terms)
+  } catch (e) {
+    return await refuse(`terms rejected: ${(e as Error).message}`, group.id)
+  }
+  if (terms.groupId !== group.id) return await refuse('the terms are for another group', group.id)
+  if (
+    ciphertext === undefined ||
+    Utils.toHex(Hash.sha256(Utils.toArray(ciphertext, 'hex'))) !== terms.ciphertextHash
+  ) {
+    return await refuse('the ciphertext does not match the terms', group.id)
+  }
+  const spend = { terms, identityKey, intent, spentSats: deps.spentSats }
+  const decision = checkSpend(policy, { ...spend, currentHeight: await height() })
+  if (!decision.ok) return await refuse(decision.reason, group.id)
+  const shareSats = decision.shareSats
+  await log('evaluate', `terms verified, share ${shareSats} of ${terms.priceSats} sats within policy`)
+
+  // joinPurchaseGroup
+  await coordinator.authorize(group.id)
+  await log('authorize', `authorized ${shareSats} sats`)
+  while (!COMMITTED.includes(group.status)) {
+    if (GAVE_UP.includes(group.status))
+      return { status: 'unmatched', reason: `group ${group.status}`, groupId }
+    if (now() > deadline)
+      return { status: 'unmatched', reason: 'the others did not authorize in time', groupId }
+    await sleep(config.pollMs)
+    group = await coordinator.group(group.id)
+  }
+
+  // authorizeFunding: checked again right before signing, since the height has moved.
+  assertSpend(policy, { ...spend, currentHeight: await height() })
+  const { contribution, beef } = await prepareContribution(ctx, terms)
+  let refundSignature: string
+  try {
+    ;({ refundSignature } = await coordinator.submitContribution(group.id, contribution))
+  } catch (e) {
+    await abandonContribution(ctx, contribution)
+    return await refuse(`no refund signature: ${(e as Error).message}`, group.id)
+  }
+  if (!verifyRefundSignature(terms, contribution, refundSignature)) {
+    await abandonContribution(ctx, contribution)
+    return await refuse("the seller's refund signature is invalid", group.id)
+  }
+  const sent = await broadcastContribution(ctx, terms, { ...contribution, refundSignature }, beef)
+  const funded = sent.contribution
+  await log('fund', `locked ${shareSats} sats in its HTLC ${sent.wocUrl}`, sent.txid)
+  // The funds are on chain now: whatever the coordinator says, wait for the claim or the refund.
+  await coordinator.submitFunding(group.id, funded).catch((e: unknown) => {
+    deps.log?.('fund', `${config.name}: the coordinator did not take the funding: ${(e as Error).message}`)
+  })
+
+  // waitForSettlement
+  for (;;) {
+    const settlement = await coordinator.settlement(group.id)
+    if (settlement.status === 'claimed' && settlement.claim !== undefined) {
+      const key =
+        settlement.claimTx !== undefined
+          ? secretFromClaim(terms, settlement.claimTx)
+          : Utils.toArray(settlement.claim.secret, 'hex')
+      // decryptResource checks K against the hash and the ciphertext against the terms.
+      const data = decryptResource(terms, key, ciphertext)
+      await log(
+        'settle',
+        `seller claimed and revealed the key ${settlement.claim.wocUrl}`,
+        settlement.claim.txid,
+      )
+      await log('decrypt', `decrypted ${data.length} bytes`)
+      return {
+        status: 'decrypted',
+        groupId: group.id,
+        shareSats,
+        fundingTxid: sent.txid,
+        claimTxid: settlement.claim.txid,
+        data,
+      }
+    }
+    if (settlement.status === 'refund_available' || settlement.status === 'refunded') {
+      try {
+        const refund = await refundContribution(ctx, terms, funded)
+        await log('refund', `no claim; refunded its contribution ${refund.wocUrl}`, refund.txid)
+        return {
+          status: 'refunded',
+          groupId: group.id,
+          shareSats,
+          fundingTxid: sent.txid,
+          refundTxid: refund.txid,
+        }
+      } catch (e) {
+        // The coordinator's height can run ahead of what the wallet sees as final; try again.
+        if (!/not final/.test((e as Error).message)) throw e
+      }
+    }
+    await sleep(config.pollMs)
+  }
+}
