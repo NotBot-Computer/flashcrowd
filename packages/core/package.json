@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p .",
+    "typecheck": "tsc -p tsconfig.check.json",
     "test": "vitest run --passWithNoTests",
     "testnet:htlc": "tsx scripts/testnet-htlc.ts"
   },

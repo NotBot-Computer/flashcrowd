@@ -17,6 +17,7 @@ import {
   CachedKeyDeriver,
   Hash,
   LockingScript,
+  MerklePath,
   OP,
   P2PKH,
   PrivateKey,
@@ -252,7 +253,8 @@ async function cmdSweep(outpoint: string | undefined): Promise<void> {
     const { merklePath } = await services.getMerklePath(txid)
     if (merklePath === undefined) throw new Error('not mined yet; try again after one confirmation')
     const tx = Transaction.fromBinary(rawTx)
-    tx.merklePath = merklePath
+    // wallet-toolbox builds its MerklePath with its own (CommonJS) copy of the SDK; rebuild it with ours (#26).
+    tx.merklePath = MerklePath.fromBinary(merklePath.toBinary())
     const output = tx.outputs[vout]
     if (output?.lockingScript.toHex() !== expected)
       throw new Error('the output does not pay the deposit address')
