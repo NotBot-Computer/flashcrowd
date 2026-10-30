@@ -1,7 +1,8 @@
 // What an agent has committed, kept next to its key file per network (agent-1.mainnet.spent.json), so maxTotalSats
-// holds across runs and not only within one. A share counts from the moment its funding is broadcast; a refunded share stops counting.
+// holds across runs and not only within one. It also keeps what a refund needs, so a stopped run loses no money. No
+// secret is in it: the seller's refund signature is useless without the agent's own key. A share counts from the moment its funding is broadcast; a refunded share stops counting.
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import type { Network } from '@agentswap/core'
+import type { FundingContribution, HtlcTerms, Network } from '@agentswap/core'
 
 export interface LedgerEntry {
   groupId: string
@@ -10,6 +11,10 @@ export interface LedgerEntry {
   status: 'funded' | 'decrypted' | 'refunded'
   /** The claim or the refund. */
   settledTxid?: string
+  /** What a refund needs if the run stops before settling (recover.ts): saved when the funding is broadcast. */
+  terms?: HtlcTerms
+  contribution?: FundingContribution
+  ciphertext?: string
   /** ISO 8601 */
   at: string
 }

@@ -28,6 +28,10 @@ agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PL
   WhatsOnChain links; it stops first if an agent lacks funds.
 - `src/ledger.ts`: each agent's committed sats in `agent-N.<network>.spent.json` next to its key file, so `maxTotalSats` holds
   across runs. A share counts once its funding is broadcast; a refunded share stops counting.
+- After funding, the agent never walks away from locked money: if the coordinator is unreachable it keeps asking, and
+  above the refund height it refunds on its own. The ledger also keeps the terms and the contribution with the
+  seller's refund signature, so if the process dies, `npm run wallet -w @agentswap/agent -- refund <key file>`
+  (`src/recover.ts`) refunds every share still marked funded once the chain is above its refund height.
 - Purchase runs start wallet-toolbox's Monitor (`openAgentWallet({ monitor: true })`): proofs for the wallet's
   transactions and rebroadcasts. Our own transactions are broadcast right away, so short commands skip it.
 
