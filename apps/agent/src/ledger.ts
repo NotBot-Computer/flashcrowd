@@ -1,6 +1,7 @@
-// What an agent has committed, kept next to its key file (agent-1.spent.json), so maxTotalSats holds across runs and
-// not only within one. A share counts from the moment its funding is broadcast; a refunded share stops counting.
+// What an agent has committed, kept next to its key file per network (agent-1.mainnet.spent.json), so maxTotalSats
+// holds across runs and not only within one. A share counts from the moment its funding is broadcast; a refunded share stops counting.
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import type { Network } from '@agentswap/core'
 
 export interface LedgerEntry {
   groupId: string
@@ -13,7 +14,8 @@ export interface LedgerEntry {
   at: string
 }
 
-export const ledgerFileFor = (keyFile: string): string => keyFile.replace(/\.key$/, '') + '.spent.json'
+export const ledgerFileFor = (keyFile: string, network: Network): string =>
+  `${keyFile.replace(/\.key$/, '')}.${network}.spent.json`
 
 export function readLedger(file: string): LedgerEntry[] {
   if (!existsSync(file)) return []

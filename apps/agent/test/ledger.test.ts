@@ -8,8 +8,9 @@ const dir = mkdtempSync(join(tmpdir(), 'flashcrowd-ledger-'))
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
 describe('ledger', () => {
-  it('lives next to the key file', () => {
-    expect(ledgerFileFor('/keys/agent-1.key')).toBe('/keys/agent-1.spent.json')
+  it('lives next to the key file, one per network', () => {
+    expect(ledgerFileFor('/keys/agent-1.key', 'mainnet')).toBe('/keys/agent-1.mainnet.spent.json')
+    expect(ledgerFileFor('/keys/agent-1.key', 'testnet')).toBe('/keys/agent-1.testnet.spent.json')
   })
 
   it('counts funded and decrypted shares, not refunded ones', () => {

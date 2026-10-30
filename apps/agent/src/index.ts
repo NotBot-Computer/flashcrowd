@@ -51,7 +51,7 @@ try {
       ctx: { wallet: open[i].wallet, network },
       coordinator: httpCoordinator(settings.serverUrl, open[i].wallet),
       spentSats: 0,
-      ledgerFile: ledgerFileFor(agent.keyFile),
+      ledgerFile: ledgerFileFor(agent.keyFile, network),
       config: {
         name: agent.name,
         policy: settings.policy,

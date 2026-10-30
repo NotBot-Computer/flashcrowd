@@ -26,7 +26,7 @@ agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PL
   prints each agent's identity, deposit address and whether its balance covers its offer plus fees. Without `--check`
   every agent buys from the server at `SERVER_URL` at the same time (`runAgents`), and each result is printed with
   WhatsOnChain links; it stops first if an agent lacks funds.
-- `src/ledger.ts`: each agent's committed sats in `agent-N.spent.json` next to its key file, so `maxTotalSats` holds
+- `src/ledger.ts`: each agent's committed sats in `agent-N.<network>.spent.json` next to its key file, so `maxTotalSats` holds
   across runs. A share counts once its funding is broadcast; a refunded share stops counting.
 - Purchase runs start wallet-toolbox's Monitor (`openAgentWallet({ monitor: true })`): proofs for the wallet's
   transactions and rebroadcasts. Our own transactions are broadcast right away, so short commands skip it.

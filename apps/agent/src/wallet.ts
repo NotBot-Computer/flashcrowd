@@ -27,7 +27,11 @@ export function readKeyFile(keyFile: string): PrivateKey {
   return PrivateKey.fromHex(hex)
 }
 
-/** Opens the agent's wallet; `dbFile` defaults to the key file's path with `.sqlite`. */
+/** One wallet database per network next to the key file (agent-1.mainnet.sqlite), so testnet and mainnet never mix. */
+export const walletFileFor = (keyFile: string, network: Network): string =>
+  `${keyFile.replace(/\.key$/, '')}.${network}.sqlite`
+
+/** Opens the agent's wallet; `dbFile` defaults to walletFileFor(keyFile, network). */
 export async function openAgentWallet(args: {
   keyFile: string
   network: Network
@@ -41,7 +45,7 @@ export async function openAgentWallet(args: {
   const rootKey = readKeyFile(args.keyFile)
   const chain = args.network === 'mainnet' ? 'main' : 'test'
   const identityKey = rootKey.toPublicKey().toString()
-  const knex = Setup.createSQLiteKnex(args.dbFile ?? args.keyFile.replace(/\.key$/, '') + '.sqlite')
+  const knex = Setup.createSQLiteKnex(args.dbFile ?? walletFileFor(args.keyFile, args.network))
   const active = new StorageKnex({
     chain,
     knex,
