@@ -60,6 +60,8 @@ export interface AgentDeps {
   spentSats: number
   log?: (step: AgentStep, message: string, txid?: string) => void
   sleep?: (ms: number) => Promise<void>
+  /** Called once the funding is on the network, before anything else can fail. */
+  onFunded?: (funding: { groupId: string; fundingTxid: string; shareSats: number }) => void
   now?: () => number
 }
 
@@ -196,6 +198,7 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
   }
   const sent = await broadcastContribution(ctx, terms, { ...contribution, refundSignature }, beef)
   const funded = sent.contribution
+  deps.onFunded?.({ groupId: group.id, fundingTxid: sent.txid, shareSats })
   await log('fund', `locked ${shareSats} sats in its HTLC ${sent.wocUrl}`, sent.txid)
   // The funds are on chain now: whatever the coordinator says, wait for the claim or the refund.
   await coordinator.submitFunding(group.id, funded).catch((e: unknown) => {

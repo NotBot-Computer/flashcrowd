@@ -4,6 +4,7 @@ import { Utils } from '@bsv/sdk'
 import type { AgentSettings } from './config'
 import type { Coordinator } from './coordinator'
 import { depositAddress } from './funding'
+import { readLedger, recordInLedger, spentSats } from './ledger'
 import { runPurchase, type AgentConfig, type PurchaseOutcome } from './flow'
 import { readKeyFile, type AgentWallet } from './wallet'
 
@@ -14,7 +15,10 @@ export interface AgentRun {
   ctx: HtlcContext
   coordinator: Coordinator
   config: AgentConfig
+  /** What this agent committed before, when there is no ledger. */
   spentSats: number
+  /** The agent's ledger file: spentSats is read from it, and the purchase is recorded in it. */
+  ledgerFile?: string
   /** Tests drive the chain from here; the default waits. */
   sleep?: (ms: number) => Promise<void>
 }
@@ -27,19 +31,37 @@ export async function runAgents(
   log: (line: string) => void = console.log,
 ): Promise<RunOutcome[]> {
   const settled = await Promise.allSettled(
-    runs.map(
-      async (run) =>
-        await runPurchase(
-          {
-            ctx: run.ctx,
-            coordinator: run.coordinator,
-            spentSats: run.spentSats,
-            sleep: run.sleep,
-            log: (step, message) => log(`[${step}] ${message}`),
+    runs.map(async (run) => {
+      const ledger = run.ledgerFile
+      const outcome = await runPurchase(
+        {
+          ctx: run.ctx,
+          coordinator: run.coordinator,
+          spentSats: ledger === undefined ? run.spentSats : spentSats(readLedger(ledger)),
+          sleep: run.sleep,
+          log: (step, message) => log(`[${step}] ${message}`),
+          onFunded: (f) => {
+            if (ledger !== undefined) recordInLedger(ledger, { ...f, status: 'funded' })
           },
-          run.config,
-        ),
-    ),
+        },
+        run.config,
+      )
+      if (ledger !== undefined && outcome.status === 'decrypted') {
+        recordInLedger(ledger, {
+          fundingTxid: outcome.fundingTxid,
+          status: 'decrypted',
+          settledTxid: outcome.claimTxid,
+        })
+      }
+      if (ledger !== undefined && outcome.status === 'refunded') {
+        recordInLedger(ledger, {
+          fundingTxid: outcome.fundingTxid,
+          status: 'refunded',
+          settledTxid: outcome.refundTxid,
+        })
+      }
+      return outcome
+    }),
   )
   return settled.map((s) =>
     s.status === 'fulfilled'
