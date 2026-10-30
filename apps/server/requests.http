@@ -1,5 +1,25 @@
 # Send these from VS Code with the REST Client extension ("Send Request" above each block).
+# Only the open routes: every POST needs a BRC-103 signed request (AuthFetch), so it cannot be sent from here.
 @base = http://localhost:8787
+@group = group-xxx
 
 ### Health
 GET {{base}}/health
+
+### Services
+GET {{base}}/api/services
+
+### Intents
+GET {{base}}/api/intents
+
+### Groups
+GET {{base}}/api/groups
+
+### One group
+GET {{base}}/api/groups/{{group}}
+
+### Its settlement
+GET {{base}}/api/groups/{{group}}/settlement
+
+### Live feed
+GET {{base}}/api/feed

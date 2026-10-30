@@ -115,6 +115,8 @@ sequenceDiagram
 
 ## API (draft)
 
+This table is the old AgentSwap draft. The FlashCrowd API is in [apps/server/README.md](../apps/server/README.md#api).
+
 | Method | Path                               | Purpose                                                         |
 | ------ | ---------------------------------- | --------------------------------------------------------------- |
 | GET    | `/health`                          | Liveness and network                                            |
