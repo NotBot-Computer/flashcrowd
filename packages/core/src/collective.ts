@@ -5,7 +5,7 @@
 //   open | matched | committed -> expired                       (nobody has paid)
 //   funding -> funding_failed                                   (a buyer did not fund; the seller never claims)
 //   locked -> settlement_failed                                 (the claim did not go through)
-//   funding | funding_failed | locked | settlement_failed -> refund_available   (refundHeight reached, no claim)
+//   funding | funding_failed | locked | settlement_failed -> refund_available   (above refundHeight, no claim)
 //   refund_available -> refunded                                (every funded buyer has its refund on chain)
 import { Hash, Utils } from '@bsv/sdk'
 import { MIN_CONTRIBUTION_SATS } from './htlc'
@@ -268,7 +268,8 @@ export function advanceGroup(group: PurchaseGroup, event: GroupEvent): PurchaseG
     }
     case 'height': {
       const waiting: GroupStatus[] = ['funding', 'funding_failed', 'locked', 'settlement_failed']
-      if (waiting.includes(g.status) && g.terms !== undefined && event.height >= g.terms.refundHeight) {
+      // A refund's nLockTime is refundHeight, and the wallet takes it as final only above that height.
+      if (waiting.includes(g.status) && g.terms !== undefined && event.height > g.terms.refundHeight) {
         g.status = 'refund_available'
       }
       return g

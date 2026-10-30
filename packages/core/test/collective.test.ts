@@ -294,8 +294,9 @@ describe('advanceGroup', () => {
       outpoint: `${contributions[i].txid}.${contributions[i].vout}`,
     })
     expect(() => advanceGroup(g, { type: 'refunded', refund: refund(0) })).toThrow(IllegalTransitionError)
-    expect(advanceGroup(g, { type: 'height', height: 999 }).status).toBe('funding_failed')
-    g = advanceGroup(g, { type: 'height', height: 1_000 })
+    // refundHeight is 1,000: the wallet refunds only once the height is above it.
+    expect(advanceGroup(g, { type: 'height', height: 1_000 }).status).toBe('funding_failed')
+    g = advanceGroup(g, { type: 'height', height: 1_001 })
     expect(g.status).toBe('refund_available')
 
     expect(() => advanceGroup(g, { type: 'refunded', refund: refund(2) })).toThrow(/nothing of this buyer/)
