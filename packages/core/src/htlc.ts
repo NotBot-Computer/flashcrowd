@@ -51,6 +51,13 @@ export const REFUND_SIGHASH =
  */
 export const MIN_CONTRIBUTION_SATS = 1_000
 
+/**
+ * Claims stop this many blocks before refundHeight, so a claim has CLAIM_MARGIN_BLOCKS + 1 blocks to be mined
+ * before a refund can be. The seller picks refundHeight above the current height + this margin + the blocks the
+ * buyers need to fund. Our choice, not a network rule.
+ */
+export const CLAIM_MARGIN_BLOCKS = 2
+
 const ALL = TransactionSignature.SIGHASH_ALL | TransactionSignature.SIGHASH_FORKID
 /** Below 0xffffffff, so nLockTime applies. */
 const REFUND_SEQUENCE = 0xfffffffe
@@ -494,7 +501,8 @@ async function signInput(
 /**
  * Seller: spends every contribution of the group in one transaction by revealing K; the wallet takes the value in
  * as change. Refuses unless K matches the hash, the contributions are exactly one per share, and the chain is still
- * below refundHeight (afterwards the buyers may be refunding). The caller verifies each funding first.
+ * below refundHeight - CLAIM_MARGIN_BLOCKS, which leaves the claim time to be mined before a refund can be. The
+ * caller verifies each funding first.
  */
 export async function claimContributions(
   ctx: HtlcContext,
@@ -514,8 +522,11 @@ export async function claimContributions(
     if (c.beef === undefined) throw new InvalidHtlcError('a contribution has no BEEF')
   }
   const { height } = await ctx.wallet.getHeight({}, ctx.originator)
-  if (height >= terms.refundHeight) {
-    throw new InvalidHtlcError(`too late to claim: height ${height}, refunds from ${terms.refundHeight}`)
+  const stop = terms.refundHeight - CLAIM_MARGIN_BLOCKS
+  if (height >= stop) {
+    throw new InvalidHtlcError(
+      `too late to claim: height ${height}, claims stop at ${stop}, refunds from ${terms.refundHeight}`,
+    )
   }
   const beef = new Beef()
   for (const c of contributions) beef.mergeBeef(Utils.toArray(c.beef!, 'hex'))
