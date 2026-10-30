@@ -3,22 +3,22 @@
   "short_name": "AgentSwap",
   "metanet": {
     "groupPermissions": {
-      "spendingAuthorization": { "amount": 50000, "description": "Monthly allowance for AgentSwap swaps and agent funding" },
+      "spendingAuthorization": { "amount": 50000, "description": "Monthly allowance for FlashCrowd group purchases and agent funding" },
       "protocolPermissions": [
-        { "protocolID": [1, "agentswap offers"], "description": "Sign AgentSwap offers" },
+        { "protocolID": [1, "flashcrowd htlc"], "description": "Lock and claim FlashCrowd group payments" },
+        { "protocolID": [1, "flashcrowd terms"], "description": "Sign FlashCrowd group terms" },
         { "protocolID": [2, "3241645161d8"], "counterparty": "self", "description": "BRC-29 payments" }
-      ],
-      "basketAccess": [{ "basket": "agentswap tokens", "description": "AgentSwap token outputs" }]
+      ]
     }
   },
   "babbage": {
     "groupPermissions": {
-      "spendingAuthorization": { "amount": 50000, "description": "Monthly allowance for AgentSwap swaps and agent funding" },
+      "spendingAuthorization": { "amount": 50000, "description": "Monthly allowance for FlashCrowd group purchases and agent funding" },
       "protocolPermissions": [
-        { "protocolID": [1, "agentswap offers"], "description": "Sign AgentSwap offers" },
+        { "protocolID": [1, "flashcrowd htlc"], "description": "Lock and claim FlashCrowd group payments" },
+        { "protocolID": [1, "flashcrowd terms"], "description": "Sign FlashCrowd group terms" },
         { "protocolID": [2, "3241645161d8"], "counterparty": "self", "description": "BRC-29 payments" }
-      ],
-      "basketAccess": [{ "basket": "agentswap tokens", "description": "AgentSwap token outputs" }]
+      ]
     }
   }
 }
