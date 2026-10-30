@@ -25,7 +25,7 @@ import {
   type SpendPolicy,
 } from '@agentswap/core'
 import { Hash, Utils } from '@bsv/sdk'
-import type { Coordinator } from './coordinator'
+import { CoordinatorError, type Coordinator } from './coordinator'
 
 export interface AgentConfig {
   name: string
@@ -80,6 +80,8 @@ export type PurchaseOutcome =
 
 const COMMITTED: GroupStatus[] = ['committed', 'funding', 'locked', 'claimed']
 const GAVE_UP: GroupStatus[] = ['expired', 'funding_failed']
+/** How often to tell the coordinator about a refund the network does not know yet. */
+const REPORT_ATTEMPTS = 20
 
 export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise<PurchaseOutcome> {
   const { ctx, coordinator } = deps
@@ -117,27 +119,31 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
   await log('search', `wants "${service.title}" (${service.priceSats} sats), offers up to ${offer}`)
 
   // createPurchaseIntent
-  const intent = await coordinator.createIntent({
+  const posted = await coordinator.createIntent({
     network: ctx.network,
     serviceId: service.id,
     resourceId: service.resourceId,
     maxContributionSats: offer,
     expiresAt: now() + config.intentTtlMs,
   })
-  await log('intent', `intent ${intent.id} published`)
+  const intent = posted.intent
+  await log('intent', `intent ${intent.id} published, up to ${offer} sats`)
 
-  // findMatchingGroup: wait for a group with signed terms.
+  // findMatchingGroup: wait for a group with signed terms. The list leaves out the ciphertext, so the group itself is
+  // read once it has terms.
   const deadline = now() + config.matchTimeoutMs
-  let groupId: string | undefined
-  let group: PurchaseGroup | undefined
-  while (group?.terms === undefined) {
+  let groupId = posted.group?.id
+  let group: PurchaseGroup | undefined = posted.group
+  while (group?.terms === undefined || group.ciphertext === undefined) {
     if (now() > deadline) return { status: 'unmatched', reason: 'no group with terms in time', groupId }
-    const state = await coordinator.intent(intent.id)
-    if (state.intent.status === 'expired')
-      return { status: 'unmatched', reason: 'the intent expired', groupId }
-    groupId = state.groupId
+    if (groupId === undefined) {
+      groupId = (await coordinator.groupsForIntent(intent.id)).find((g) => !GAVE_UP.includes(g.status))?.id
+    }
     if (groupId !== undefined) group = await coordinator.group(groupId)
-    if (group?.terms === undefined) await sleep(config.pollMs)
+    if (group !== undefined && GAVE_UP.includes(group.status)) {
+      return { status: 'unmatched', reason: `group ${group.status}`, groupId }
+    }
+    if (group?.terms === undefined || group.ciphertext === undefined) await sleep(config.pollMs)
   }
   const terms: HtlcTerms = group.terms
   const ciphertext = group.ciphertext
@@ -163,7 +169,7 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
   await log('evaluate', `terms verified, share ${shareSats} of ${terms.priceSats} sats within policy`)
 
   // joinPurchaseGroup
-  await coordinator.authorize(group.id)
+  group = await coordinator.authorize(group.id)
   await log('authorize', `authorized ${shareSats} sats`)
   while (!COMMITTED.includes(group.status)) {
     if (GAVE_UP.includes(group.status))
@@ -196,6 +202,25 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
     deps.log?.('fund', `${config.name}: the coordinator did not take the funding: ${(e as Error).message}`)
   })
 
+  /** The refund is on chain already; the server only needs to see it. It answers 409 until the network knows it. */
+  const reportRefund = async (id: string, txid: string): Promise<void> => {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await coordinator.reportRefund(id, txid)
+        return
+      } catch (e) {
+        if (!(e instanceof CoordinatorError && e.status === 409) || attempt >= REPORT_ATTEMPTS) {
+          deps.log?.(
+            'refund',
+            `${config.name}: the coordinator did not take the refund: ${(e as Error).message}`,
+          )
+          return
+        }
+        await sleep(config.pollMs)
+      }
+    }
+  }
+
   // waitForSettlement
   for (;;) {
     const settlement = await coordinator.settlement(group.id)
@@ -221,10 +246,11 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
         data,
       }
     }
-    if (settlement.status === 'refund_available' || settlement.status === 'refunded') {
+    if (settlement.refundAvailable || settlement.status === 'refunded') {
       try {
         const refund = await refundContribution(ctx, terms, funded)
         await log('refund', `no claim; refunded its contribution ${refund.wocUrl}`, refund.txid)
+        await reportRefund(group.id, refund.txid)
         return {
           status: 'refunded',
           groupId: group.id,

@@ -174,5 +174,8 @@ describe('the seller never claims', () => {
       expect(lost).toBeGreaterThan(0)
       expect(lost).toBeLessThan(200)
     }
+    // Each agent told the coordinator about its refund, and the group is settled.
+    expect(coord.refundReports).toHaveLength(2)
+    expect([...coord.groups.values()][0].status).toBe('refunded')
   })
 })
