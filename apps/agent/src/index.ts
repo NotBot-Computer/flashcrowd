@@ -1,10 +1,11 @@
 // npm run dev:agent -- --agents 3 [--check]
 // Settings come from the root .env (src/config.ts). --check reports each agent's wallet and stops. Without it, every
 // agent that can cover its offer buys from the coordinator at SERVER_URL at the same time, and each one's result is
-// printed with WhatsOnChain links.
+// printed with WhatsOnChain links. With AGENT_NARRATE=1, Claude also narrates the steps (src/narrate.ts).
 import { readSettings } from './config'
 import { httpCoordinator } from './httpCoordinator'
 import { ledgerFileFor } from './ledger'
+import { narratorFromEnv } from './narrate'
 import { checkAgents, runAgents, summarize } from './runner'
 import { openAgentWallet, type AgentWallet } from './wallet'
 
@@ -42,6 +43,15 @@ if (notReady.length > 0) {
   process.exit(1)
 }
 
+const narration = narratorFromEnv(
+  process.env,
+  (sentence) => console.log(`  💬 ${sentence}`),
+  (error) => console.log(`  💬 narration skipped: ${error instanceof Error ? error.message : String(error)}`),
+)
+console.log(
+  narration.narrator === undefined ? `narration: ${narration.reason}` : `narration: on (${narration.model})`,
+)
+
 const open: AgentWallet[] = []
 try {
   for (const agent of settings.agents)
@@ -63,6 +73,8 @@ try {
         matchTimeoutMs: settings.matchTimeoutMs,
       },
     })),
+    console.log,
+    narration.narrator,
   )
   console.log('')
   outcomes.forEach((o, i) => console.log(summarize(settings.agents[i].name, o, network)))

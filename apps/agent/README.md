@@ -30,6 +30,10 @@ agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PL
   agent" pays the agent's identity key with BRC-29 and downloads a payment file (`kind: "flashcrowd agent funding"`).
   The agent refuses a file for another agent or another network, checks the payment with SPV against Arcade and that
   it is locked to its own key (core's `acceptBrc29Payment`), takes it in and prints the sats, txid and WoC link.
+- `src/narrate.ts` (optional): with `AGENT_NARRATE=1`, Claude (`claude-opus-5-5` by default, `AGENT_NARRATE_MODEL` to
+  change it) turns each kind of step into one plain sentence in the terminal, about six per round. It only describes
+  what the code already did: it never decides an amount, a signature or a group, the agents never wait for it, and if
+  it fails (no `ANTHROPIC_API_KEY`, rate limit) it says so once and the round goes on. Off by default.
 - `src/ledger.ts`: each agent's committed sats in `agent-N.<network>.spent.json` next to its key file, so `maxTotalSats` holds
   across runs. A share counts once its funding is broadcast; a refunded share stops counting.
 - After funding, the agent never walks away from locked money: if the coordinator is unreachable it keeps asking, and

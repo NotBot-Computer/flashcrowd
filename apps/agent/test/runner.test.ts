@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createMockChain, type MockChain } from '../../../packages/core/test/helpers/mockchain'
 import { depositAddress } from '../src/funding'
 import { readLedger } from '../src/ledger'
+import { Narrator } from '../src/narrate'
 import { checkAgents, FEE_MARGIN_SATS, runAgents, summarize, type AgentRun } from '../src/runner'
 import { LocalCoordinator } from './helpers/localCoordinator'
 
@@ -146,6 +147,72 @@ describe('the ledger across runs', () => {
     // Within one run 2,900 would allow another 2,000; with the ledger only 900 is left, below the minimum.
     const [second] = await runAgents(run(2_900).slice(0, 1), () => undefined)
     expect(second).toMatchObject({ status: 'refused', reason: expect.stringMatching(/leaves 900 sats/) })
+  })
+})
+
+describe('narration', () => {
+  /** Two funded agents buying a 7,000-sat dataset through the test coordinator. */
+  function narratedRuns(): AgentRun[] {
+    const coord = new LocalCoordinator({
+      seller: { wallet: seller, network: 'testnet' },
+      sellerIdentityKey: seller.identityKey,
+      service: {
+        id: 'premium-data',
+        network: 'testnet',
+        sellerIdentityKey: seller.identityKey,
+        title: 'BSV/USD daily closes (simulation)',
+        resourceId: 'bsvusd-2026-10',
+        priceSats: 7_000,
+        license: 'shared-within-group',
+        simulation: true,
+      },
+      dataset: JSON.stringify({ simulation: true }),
+      chainTracker: chain.chainTracker,
+      height: async () => await chain.services.getHeight(),
+      lockBlocks: 20,
+      claim: true,
+    })
+    return [3_000, 4_000].map((max, i) => ({
+      ctx: { wallet: agents[i], network: 'testnet' } satisfies HtlcContext,
+      coordinator: coord.client(agents[i].identityKey),
+      spentSats: 0,
+      config: {
+        name: `agent-${i + 1}`,
+        policy,
+        serviceId: 'premium-data',
+        resourceId: 'bsvusd-2026-10',
+        maxContributionSats: max,
+        intentTtlMs: 60_000,
+        pollMs: 5,
+        matchTimeoutMs: 3_000,
+      },
+    }))
+  }
+
+  it('narrates each kind of step once and prints it before the run returns', async () => {
+    const sentences: string[] = []
+    const narrator = new Narrator(
+      async (line) => `said: ${line}`,
+      (s) => sentences.push(s),
+    )
+    const outcomes = await runAgents(narratedRuns(), () => undefined, narrator)
+    expect(outcomes.map((o) => o.status)).toEqual(['decrypted', 'decrypted'])
+    const steps = sentences.map((s) => s.replace(/^said: agent-\d: /, '').split(' ')[0])
+    expect(sentences.length).toBe(6)
+    expect(steps).toEqual(
+      expect.arrayContaining(['wants', 'matched', 'terms', 'locked', 'seller', 'decrypted']),
+    )
+  })
+
+  it('a failing narrator changes nothing in the run', async () => {
+    const narrator = new Narrator(
+      async () => {
+        throw new Error('no credentials')
+      },
+      () => undefined,
+    )
+    const outcomes = await runAgents(narratedRuns(), () => undefined, narrator)
+    expect(outcomes.map((o) => o.status)).toEqual(['decrypted', 'decrypted'])
   })
 })
 
