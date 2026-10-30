@@ -1,12 +1,13 @@
-// npm run testnet:htlc -w @agentswap/core -- init | sweep <txid>.<vout> | run | refund
+// [BSV_NETWORK=mainnet] npm run testnet:htlc -w @agentswap/core -- init | sweep <txid>.<vout> | run | refund
 //
-// Checks the FlashCrowd HTLC on testnet (docs/FLASHCROWD_PLAN.md, P1 step 3) with three wallet-toolbox wallets whose
-// key files live in ~/.agentswap/htlc, outside the repo:
+// Checks the FlashCrowd HTLC on chain (docs/FLASHCROWD_PLAN.md, P1 step 3) with three wallet-toolbox wallets whose
+// key files live in ~/.agentswap/htlc (testnet) or ~/.agentswap/htlc-mainnet, outside the repo:
 //   a) two buyers fund group A and the seller, with an empty wallet, claims it;
 //   b) buyer-1 funds group B and sends its refund to Arcade before refundHeight; then the seller claims B;
 //   c) buyer-2 refunds group C after its refundHeight.
 // The wallets are built by hand rather than with Setup.createWalletSQLite, which ignores options.arcadeUrl (guide
-// §14.2). Testnet only. Keys are never printed; state.json holds terms, contributions and txids, no keys or secrets.
+// §14.2). Testnet unless BSV_NETWORK=mainnet, read from the shell only (not from .env); mainnet has its own keys and
+// state. Keys are never printed; state.json holds terms, contributions and txids, no keys or secrets.
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -35,7 +36,7 @@ import {
   Wallet,
   WalletStorageManager,
 } from '@bsv/wallet-toolbox'
-import { ARCADE_URL, parseNetwork, wocTxUrl } from '../src/config'
+import { ARCADE_URL, parseNetwork, wocTxUrl, type Network } from '../src/config'
 import {
   abandonContribution,
   broadcastContribution,
@@ -58,9 +59,12 @@ import { ArcadeChainTracker } from '../src/kit/client/arcadeChainTracker'
 import { acceptBrc29Payment, createBrc29Payment } from '../src/kit/client/payments'
 import type { ClaimProof, FundingContribution, HtlcTerms, RefundProof } from '../src/types'
 
-const NETWORK = 'testnet' as const
+const NETWORK: Network = parseNetwork(process.env.BSV_NETWORK)
+const CHAIN = NETWORK === 'mainnet' ? 'main' : 'test'
 const ARCADE = ARCADE_URL[NETWORK]
-const DIR = join(homedir(), '.agentswap', 'htlc')
+const WOC = NETWORK === 'mainnet' ? 'https://whatsonchain.com' : 'https://test.whatsonchain.com'
+const DIR = join(homedir(), '.agentswap', NETWORK === 'mainnet' ? 'htlc-mainnet' : 'htlc')
+const COMMAND = `${NETWORK === 'mainnet' ? 'BSV_NETWORK=mainnet ' : ''}npm run testnet:htlc -w @agentswap/core --`
 const STATE_FILE = join(DIR, 'state.json')
 const ROLES = ['seller', 'buyer-1', 'buyer-2'] as const
 type Role = (typeof ROLES)[number]
@@ -76,6 +80,8 @@ const SATS_PER_KB = 100
 const EARLY_REFUND_SATS_PER_KB = 10 * SATS_PER_KB
 const HEIGHT_POLL_MS = 60_000
 const STATUS_DELAY_MS = 30_000
+/** On mainnet, how long `run` waits after saying what it will spend, so Ctrl-C can stop it. */
+const MAINNET_PAUSE_MS = 10_000
 
 /** The agent's deposit key (apps/agent/src/funding.ts): [1, 'flashcrowd deposit'], keyID '1', counterparty 'self'. */
 const DEPOSIT_PROTOCOL: WalletProtocol = [1, 'flashcrowd deposit']
@@ -94,8 +100,7 @@ const keyFile = (role: Role): string => join(DIR, `${role}.key`)
 
 /** Reads a hex root key. The error messages name the file, never its contents. */
 function readKeyFile(file: string): PrivateKey {
-  if (!existsSync(file))
-    throw new Error(`no key file at ${file}; run: npm run testnet:htlc -w @agentswap/core -- init`)
+  if (!existsSync(file)) throw new Error(`no key file at ${file}; run: ${COMMAND} init`)
   if ((statSync(file).mode & 0o077) !== 0)
     console.warn(`warning: ${file} is readable by other users; chmod 600 it`)
   const hex = readFileSync(file, 'utf8').trim().toLowerCase()
@@ -119,12 +124,12 @@ interface Party {
 async function openWallet(role: Role): Promise<Party> {
   const rootKey = readKeyFile(keyFile(role))
   const identityKey = rootKey.toPublicKey().toString()
-  const options = Services.createDefaultOptions('test')
+  const options = Services.createDefaultOptions(CHAIN)
   options.arcadeUrl = ARCADE
   const services = new Services(options)
   const knex = Setup.createSQLiteKnex(join(DIR, `${role}.sqlite`))
   const provider = new StorageKnex({
-    chain: 'test',
+    chain: CHAIN,
     knex,
     commissionSatoshis: 0,
     feeModel: { model: 'sat/kb', value: SATS_PER_KB },
@@ -134,13 +139,13 @@ async function openWallet(role: Role): Promise<Party> {
   const storage = new WalletStorageManager(identityKey, provider)
   await storage.makeAvailable()
   storage.setServices(services)
-  const wallet = new Wallet({ chain: 'test', keyDeriver: new CachedKeyDeriver(rootKey), storage, services })
+  const wallet = new Wallet({ chain: CHAIN, keyDeriver: new CachedKeyDeriver(rootKey), storage, services })
   return {
     role,
     wallet,
     ctx: { wallet, network: NETWORK },
     identityKey,
-    depositAddress: depositKey(rootKey).toAddress('testnet'),
+    depositAddress: depositKey(rootKey).toAddress(NETWORK),
     async close() {
       await wallet.destroy()
       await knex.destroy()
@@ -187,7 +192,7 @@ interface RunRecord {
 }
 
 interface ScriptState {
-  network: typeof NETWORK
+  network: Network
   runs: RunRecord[]
 }
 
@@ -219,14 +224,12 @@ async function cmdInit(): Promise<void> {
   console.log('')
   for (const role of ROLES)
     console.log(`${role} identity key: ${readKeyFile(keyFile(role)).toPublicKey().toString()}`)
-  const address = depositKey(readKeyFile(keyFile('buyer-1'))).toAddress('testnet')
+  const address = depositKey(readKeyFile(keyFile('buyer-1'))).toAddress(NETWORK)
   console.log(
-    `\nbuyer-1 deposit address (send at least ${2 * SHARE + FEE_ROOM + BUYER_2_FUNDING} sats of test coins here):`,
+    `\nbuyer-1 deposit address (send at least ${2 * SHARE + FEE_ROOM + BUYER_2_FUNDING} sats here):`,
   )
-  console.log(`  ${address}\n  https://test.whatsonchain.com/address/${address}`)
-  console.log(
-    '\nThen, after one confirmation: npm run testnet:htlc -w @agentswap/core -- sweep <txid>.<vout>',
-  )
+  console.log(`  ${address}\n  ${WOC}/address/${address}`)
+  console.log(`\nThen, after one confirmation: ${COMMAND} sweep <txid>.<vout>`)
 }
 
 /**
@@ -239,7 +242,7 @@ async function cmdSweep(outpoint: string | undefined): Promise<void> {
   const [, txid, voutText] = match
   const vout = Number(voutText)
   const key = depositKey(readKeyFile(keyFile('buyer-1')))
-  const expected = new P2PKH().lock(key.toAddress('testnet')).toHex()
+  const expected = new P2PKH().lock(key.toAddress(NETWORK)).toHex()
   const buyer = await openWallet('buyer-1')
   let reference: string | undefined
   try {
@@ -304,7 +307,7 @@ async function cmdRun(): Promise<void> {
       groups: {},
     }
     const save = (): void => saveState(state)
-    console.log(`testnet height T = ${T}; Arcade ${ARCADE}`)
+    console.log(`${NETWORK} height T = ${T}; Arcade ${ARCADE}`)
 
     // 0. Balances
     if (run.sellerBalanceAtStart !== 0) {
@@ -320,8 +323,14 @@ async function cmdRun(): Promise<void> {
     const needed = 2 * SHARE + FEE_ROOM + (payBuyer2 ? BUYER_2_FUNDING : 0)
     if (b1 < needed) {
       throw new Error(
-        `buyer-1 has ${b1} sats and needs ${needed}; send test coins to its deposit address and sweep them`,
+        `buyer-1 has ${b1} sats and needs ${needed}; send sats to its deposit address and sweep them`,
       )
+    }
+    if (NETWORK === 'mainnet') {
+      console.log(
+        `mainnet: this run spends up to ${needed} real sats; Ctrl-C within ${MAINNET_PAUSE_MS / 1000} s to stop`,
+      )
+      await sleep(MAINNET_PAUSE_MS)
     }
     state.runs.push(run)
     save()
@@ -435,11 +444,11 @@ async function makeTerms(
   T: number,
   refundHeight: number,
 ): Promise<{ terms: HtlcTerms; secret: number[] }> {
-  const groupId = `testnet-${label.toLowerCase()}-${T}-${Date.now().toString(36)}`
+  const groupId = `htlc-check-${label.toLowerCase()}-${T}-${Date.now().toString(36)}`
   const { secret, hash } = newSecret()
   const { ciphertextHash } = encryptResource(
     secret,
-    Utils.toArray(`FlashCrowd testnet check, group ${label}`, 'utf8'),
+    Utils.toArray(`FlashCrowd HTLC check, group ${label}`, 'utf8'),
   )
   const shares = buyers
     .map((b) => ({ identityKey: b.identityKey, shareSats: SHARE }))
@@ -447,7 +456,7 @@ async function makeTerms(
   const terms = await signTerms(seller.ctx, {
     groupId,
     network: NETWORK,
-    serviceId: 'testnet-htlc-check',
+    serviceId: 'htlc-check',
     resourceId: groupId,
     sellerIdentityKey: seller.identityKey,
     sellerKey: await htlcKey(seller.ctx, groupId),
@@ -700,7 +709,7 @@ function issueTable(run: RunRecord): string {
     rows.push([`c) Refund C above height ${C!.terms.refundHeight}`, link(r.txid), 'refunded'])
   const cell = (s: string): string => s.replace(/\|/g, '\\|')
   return [
-    `Testnet HTLC check, start height ${run.startHeight}, CLAIM_MARGIN_BLOCKS = ${CLAIM_MARGIN_BLOCKS}.`,
+    `HTLC check on ${NETWORK}, start height ${run.startHeight}, CLAIM_MARGIN_BLOCKS = ${CLAIM_MARGIN_BLOCKS}.`,
     '',
     '| Step | Transaction | Result |',
     '| --- | --- | --- |',
@@ -714,7 +723,6 @@ function issueTable(run: RunRecord): string {
 
 const [command, ...args] = process.argv.slice(2)
 try {
-  if (parseNetwork(process.env.BSV_NETWORK) !== NETWORK) throw new Error('this script runs on testnet only')
   if (command !== 'init') mkdirSync(DIR, { recursive: true, mode: 0o700 })
   if (command === 'init') await cmdInit()
   else if (command === 'sweep') await cmdSweep(args[0])
@@ -722,7 +730,7 @@ try {
   else if (command === 'refund') await cmdRefund()
   else
     throw new Error(
-      'usage: npm run testnet:htlc -w @agentswap/core -- init | sweep <txid>.<vout> | run | refund',
+      `usage: [BSV_NETWORK=mainnet] npm run testnet:htlc -w @agentswap/core -- init | sweep <txid>.<vout> | run | refund`,
     )
 } catch (e) {
   console.error(`error: ${message(e)}`)
