@@ -181,6 +181,16 @@ button.secondary {
 
 /* Dashboard */
 
+.network-banner {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid #f3b8b0;
+  border-radius: 10px;
+  background: #fef3f2;
+  color: #912018;
+  font-size: 14px;
+}
+
 .notice {
   margin: 0 0 20px;
   padding: 12px 16px;

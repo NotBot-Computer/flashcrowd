@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Dashboard } from './Dashboard'
 import { FundAgent } from './FundAgent'
+import { NetworkBanner } from './NetworkBanner'
 import { SourceBar } from './SourceBar'
 import { useDashboard } from './useDashboard'
 import { connectWallet, type Session } from './wallet'
@@ -16,12 +17,31 @@ export function App() {
   const [connecting, setConnecting] = useState(false)
   const [page, setPage] = useState<Page>(pageFromHash)
   const { data, source, retry } = useDashboard()
+  const serverNetwork = source.kind === 'live' ? source.health?.network : undefined
 
   useEffect(() => {
     const onHash = () => setPage(pageFromHash())
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
+
+  // The network is read at Connect wallet. Switching it happens in BSV Desktop, so read it again whenever the user
+  // comes back to this page.
+  useEffect(() => {
+    if (session === undefined) return
+    const onFocus = () => {
+      session.wallet
+        .getNetwork({})
+        .then(({ network }) => {
+          if (network !== session.network) setSession({ ...session, network })
+        })
+        .catch(() => {
+          // A locked or closed wallet: keep what we have; the next wallet call reports it.
+        })
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [session])
 
   async function onConnect() {
     setConnecting(true)
@@ -60,14 +80,12 @@ export function App() {
         )}
       </header>
       <main>
+        <NetworkBanner wallet={session?.network} server={serverNetwork} />
         {error && <p role="alert">{error}</p>}
         {page === 'dashboard' && (
           <>
             <SourceBar source={source} />
-            <FundAgent
-              session={session}
-              serverNetwork={source.kind === 'live' ? source.health?.network : undefined}
-            />
+            <FundAgent session={session} serverNetwork={serverNetwork} />
             {data && (
               <Dashboard
                 data={data}
