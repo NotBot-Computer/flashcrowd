@@ -12,5 +12,12 @@
   },
   "dependencies": {
     "@bsv/sdk": "3.2.1"
+  },
+  "devDependencies": {
+    "@bsv/overlay": "2.6.4",
+    "@bsv/overlay-express": "2.7.4",
+    "@bsv/wallet-toolbox": "2.14.9",
+    "better-sqlite3": "^13.0.3",
+    "knex": "^3.3.0"
   }
 }
