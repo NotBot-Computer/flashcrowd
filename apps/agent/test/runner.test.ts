@@ -8,6 +8,7 @@ import type { Wallet } from '@bsv/wallet-toolbox'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createMockChain, type MockChain } from '../../../packages/core/test/helpers/mockchain'
 import { depositAddress } from '../src/funding'
+import { readLedger } from '../src/ledger'
 import { checkAgents, FEE_MARGIN_SATS, runAgents, summarize, type AgentRun } from '../src/runner'
 import { LocalCoordinator } from './helpers/localCoordinator'
 
@@ -96,6 +97,55 @@ describe('runAgents', () => {
     expect(summary[1]).toMatch(/claim {3}https:\/\/test\.whatsonchain\.com\/tx\//)
     expect(summary[2]).toMatch(/server unreachable/)
     expect(lines.some((l) => l.startsWith('[decrypt] agent-1'))).toBe(true)
+  })
+})
+
+describe('the ledger across runs', () => {
+  it('a second run counts what the first one spent against maxTotalSats', async () => {
+    const coord = new LocalCoordinator({
+      seller: { wallet: seller, network: 'testnet' },
+      sellerIdentityKey: seller.identityKey,
+      service: {
+        id: 'premium-data',
+        network: 'testnet',
+        sellerIdentityKey: seller.identityKey,
+        title: 'BSV/USD daily closes (simulation)',
+        resourceId: 'bsvusd-2026-10',
+        priceSats: 4_000,
+        license: 'shared-within-group',
+        simulation: true,
+      },
+      dataset: JSON.stringify({ simulation: true }),
+      chainTracker: chain.chainTracker,
+      height: async () => await chain.services.getHeight(),
+      lockBlocks: 20,
+      claim: true,
+    })
+    const ledgerFile = join(dir, 'agent-1.spent.json')
+    const run = (maxTotalSats: number): AgentRun[] =>
+      [0, 1].map((i) => ({
+        ctx: { wallet: agents[i], network: 'testnet' },
+        coordinator: coord.client(agents[i].identityKey),
+        spentSats: 0,
+        ...(i === 0 && { ledgerFile }),
+        config: {
+          name: `agent-${i + 1}`,
+          policy: { ...policy, maxTotalSats },
+          serviceId: 'premium-data',
+          resourceId: 'bsvusd-2026-10',
+          maxContributionSats: 2_000,
+          intentTtlMs: 60_000,
+          pollMs: 5,
+          matchTimeoutMs: 3_000,
+        },
+      }))
+    const first = await runAgents(run(2_900), () => undefined)
+    expect(first.map((o) => o.status)).toEqual(['decrypted', 'decrypted'])
+    expect(readLedger(ledgerFile)).toMatchObject([{ shareSats: 2_000, status: 'decrypted' }])
+
+    // Within one run 2,900 would allow another 2,000; with the ledger only 900 is left, below the minimum.
+    const [second] = await runAgents(run(2_900).slice(0, 1), () => undefined)
+    expect(second).toMatchObject({ status: 'refused', reason: expect.stringMatching(/leaves 900 sats/) })
   })
 })
 

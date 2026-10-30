@@ -26,6 +26,18 @@ agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PL
   prints each agent's identity, deposit address and whether its balance covers its offer plus fees. Without `--check`
   every agent buys from the server at `SERVER_URL` at the same time (`runAgents`), and each result is printed with
   WhatsOnChain links; it stops first if an agent lacks funds.
+- `src/receive.ts` and `npm run wallet -w @agentswap/agent -- receive <key file> <payment file>`: the web app's "Fund the
+  agent" pays the agent's identity key with BRC-29 and downloads a payment file (`kind: "flashcrowd agent funding"`).
+  The agent refuses a file for another agent or another network, checks the payment with SPV against Arcade and that
+  it is locked to its own key (core's `acceptBrc29Payment`), takes it in and prints the sats, txid and WoC link.
+- `src/ledger.ts`: each agent's committed sats in `agent-N.<network>.spent.json` next to its key file, so `maxTotalSats` holds
+  across runs. A share counts once its funding is broadcast; a refunded share stops counting.
+- After funding, the agent never walks away from locked money: if the coordinator is unreachable it keeps asking, and
+  above the refund height it refunds on its own. The ledger also keeps the terms and the contribution with the
+  seller's refund signature, so if the process dies, `npm run wallet -w @agentswap/agent -- refund <key file>`
+  (`src/recover.ts`) refunds every share still marked funded once the chain is above its refund height.
+- Purchase runs start wallet-toolbox's Monitor (`openAgentWallet({ monitor: true })`): proofs for the wallet's
+  transactions and rebroadcasts. Our own transactions are broadcast right away, so short commands skip it.
 
 Tests: `npm test -w @agentswap/agent`, on wallet-toolbox's mock chain with a test-only in-process coordinator and mock
 seller (`test/helpers/localCoordinator.ts`, not the server): three agents buy a 12,000-sat dataset and decrypt it; an
@@ -43,7 +55,7 @@ npm run wallet -w @agentswap/agent -- sweep ~/.agentswap/agent-1.key <txid>.<vou
 
 Then `npm run dev:agent -- --agents 3 --check` until every agent is ready.
 
-Against the real server: a test that starts apps/server (as its own tests do) and runs three agents through it over
-HTTP and BRC-103, plus a refund run, passes on a local merge with #13. It joins this package once #13 is merged.
+`test/server.test.ts` starts apps/server the way its own tests do and runs three agents through it over HTTP and
+BRC-103, plus a refund run with a seller that never claims.
 
 Next: the testnet run (funded agents, the server on testnet), optional LLM narration.

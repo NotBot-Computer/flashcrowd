@@ -18,6 +18,7 @@ import {
   secretFromClaim,
   verifyRefundSignature,
   verifyTerms,
+  type FundingContribution,
   type GroupStatus,
   type HtlcContext,
   type HtlcTerms,
@@ -25,7 +26,7 @@ import {
   type SpendPolicy,
 } from '@agentswap/core'
 import { Hash, Utils } from '@bsv/sdk'
-import { CoordinatorError, type Coordinator } from './coordinator'
+import { CoordinatorError, type Coordinator, type Settlement } from './coordinator'
 
 export interface AgentConfig {
   name: string
@@ -60,6 +61,18 @@ export interface AgentDeps {
   spentSats: number
   log?: (step: AgentStep, message: string, txid?: string) => void
   sleep?: (ms: number) => Promise<void>
+  /**
+   * Called once the funding is on the network, before anything else can fail, with what a refund needs later:
+   * the terms and the contribution with its refund signature and BEEF.
+   */
+  onFunded?: (funding: {
+    groupId: string
+    fundingTxid: string
+    shareSats: number
+    terms: HtlcTerms
+    contribution: FundingContribution
+    ciphertext: string
+  }) => void
   now?: () => number
 }
 
@@ -196,6 +209,14 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
   }
   const sent = await broadcastContribution(ctx, terms, { ...contribution, refundSignature }, beef)
   const funded = sent.contribution
+  deps.onFunded?.({
+    groupId: group.id,
+    fundingTxid: sent.txid,
+    shareSats,
+    terms,
+    contribution: funded,
+    ciphertext,
+  })
   await log('fund', `locked ${shareSats} sats in its HTLC ${sent.wocUrl}`, sent.txid)
   // The funds are on chain now: whatever the coordinator says, wait for the claim or the refund.
   await coordinator.submitFunding(group.id, funded).catch((e: unknown) => {
@@ -221,10 +242,25 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
     }
   }
 
-  // waitForSettlement
+  // waitForSettlement. The money is locked, so the agent never gives up: when the coordinator is unreachable it keeps
+  // asking, and once the chain is above refundHeight it refunds on its own (the seller stops claiming before then).
+  let unreachable = false
   for (;;) {
-    const settlement = await coordinator.settlement(group.id)
-    if (settlement.status === 'claimed' && settlement.claim !== undefined) {
+    let settlement: Settlement | undefined
+    try {
+      settlement = await coordinator.settlement(group.id)
+      if (unreachable) deps.log?.('settle', `${config.name}: the coordinator is back`)
+      unreachable = false
+    } catch (e) {
+      if (!unreachable) {
+        deps.log?.(
+          'settle',
+          `${config.name}: the coordinator is unreachable (${(e as Error).message}); still waiting`,
+        )
+      }
+      unreachable = true
+    }
+    if (settlement?.status === 'claimed' && settlement.claim !== undefined) {
       const key =
         settlement.claimTx !== undefined
           ? secretFromClaim(terms, settlement.claimTx)
@@ -246,7 +282,11 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
         data,
       }
     }
-    if (settlement.refundAvailable || settlement.status === 'refunded') {
+    const refundable =
+      settlement === undefined
+        ? (await height()) > terms.refundHeight
+        : settlement.refundAvailable || settlement.status === 'refunded'
+    if (refundable) {
       try {
         const refund = await refundContribution(ctx, terms, funded)
         await log('refund', `no claim; refunded its contribution ${refund.wocUrl}`, refund.txid)
@@ -259,8 +299,11 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
           refundTxid: refund.txid,
         }
       } catch (e) {
-        // The coordinator's height can run ahead of what the wallet sees as final; try again.
-        if (!/not final/.test((e as Error).message)) throw e
+        // "not final": the coordinator's height ran ahead of the wallet's; anything else (a claim we have not seen
+        // yet, a network error) is logged. Either way the agent tries again.
+        if (!/not final/.test((e as Error).message)) {
+          deps.log?.('refund', `${config.name}: refund failed (${(e as Error).message}); trying again`)
+        }
       }
     }
     await sleep(config.pollMs)
