@@ -28,14 +28,14 @@ If the team picks another idea, the split below still holds: it follows the laye
 
 ## 2. Four equal parts
 
-|                 | **P1: On-chain core**                                     | **P2: Backend**                                               | **P3: Frontend**                                               | **P4: AI agent**                                                    |
-| --------------- | --------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Folder          | `packages/core`                                           | `apps/server`                                                 | `apps/web`                                                     | `apps/agent`                                                        |
-| Owner (GitHub)  | @NotBot-Computer                                          | @efekaansalici07-design                                       | @efeberkinaslan07-rgb                                          | 4th member (not invited yet)                                        |
-| Product work    | USDx demo token, create / fill / cancel offers, broadcast | Order book API, offer validation, paid 402 service, live feed | Wallet connection, Swap / Sell / Agent pages, transaction feed | Agent wallet, spend policy, tools (find offer, swap, pay), LLM loop |
-| Submission work | WhatsOnChain link table in the README                     | README setup section, demo environment                        | Demo video (≤ 2:30)                                            | Devfolio description, pitch for the judges                          |
-| Rough effort    | ~18 h                                                     | ~18 h                                                         | ~18 h                                                          | ~18 h                                                               |
-| Issue           | #2                                                        | #3                                                            | #4                                                             | #5                                                                  |
+|                 | **P1: On-chain core**                                                     | **P2: Backend**                                               | **P3: Frontend**                                               | **P4: AI agent**                                                    |
+| --------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Folder          | `packages/core`                                                           | `apps/server`                                                 | `apps/web`                                                     | `apps/agent`                                                        |
+| Owner (GitHub)  | @NotBot-Computer                                                          | @efekaansalici07-design                                       | @efeberkinaslan07-rgb                                          | 4th member (not invited yet)                                        |
+| Product work    | USDx demo token, BSV-21 overlay, create / fill / cancel offers, broadcast | Order book API, offer validation, paid 402 service, live feed | Wallet connection, Swap / Sell / Agent pages, transaction feed | Agent wallet, spend policy, tools (find offer, swap, pay), LLM loop |
+| Submission work | WhatsOnChain link table in the README                                     | README setup section, demo environment                        | Demo video (≤ 2:30)                                            | Devfolio description, pitch for the judges                          |
+| Rough effort    | ~18 h                                                                     | ~18 h                                                         | ~18 h                                                          | ~18 h                                                               |
+| Issue           | #2                                                                        | #3                                                            | #4                                                             | #5                                                                  |
 
 Shared: #1 (setup, everyone) and #6 (submission, everyone).
 
@@ -45,6 +45,7 @@ Goal: tested on-chain functions the other three call.
 
 - [ ] Copy `AGENTS.md` from the developer pack to the repo root; align package versions with it (now `@bsv/sdk 3.2.1`).
 - [ ] Study `starter/bsv21-token-kit` (38 tests) and adapt its deploy, mint and transfer flows.
+- [ ] Run the kit's BSV-21 overlay as `apps/overlay` on testnet (Arcade block headers): token balances and offer checks read from it.
 - [ ] Deploy and mint **USDx** (demo token, no real value) on testnet → first WhatsOnChain link.
 - [ ] `createOffer()`: the maker's SIGHASH_SINGLE | ANYONECANPAY signature over the token UTXO through `wallet.createSignature` → `Offer`.
 - [ ] `fillOffer()`: the taker's `wallet.createAction` (input 0 = the maker's UTXO with its ready unlocking script, output 0 = payment to the maker, token output to the taker, `randomizeOutputs: false`).
@@ -52,8 +53,8 @@ Goal: tested on-chain functions the other three call.
 - [ ] Stretch: `swapAndPay()`, one transaction that sends the bought tokens straight to the service.
 - [ ] Vitest unit tests (scripts, sighash) and a testnet script that prints WoC links.
 
-Provides `@agentswap/core` and the contract in `packages/core/src/types.ts`. Uses a `WalletInterface`: BSV Desktop in
-the browser, wallet-toolbox in the agent.
+Provides `@agentswap/core` ([API](../packages/core/README.md#api)) and the contract in `packages/core/src/types.ts`.
+Uses a `WalletInterface`: BSV Desktop in the browser, wallet-toolbox in the agent.
 
 ### P2: Backend (`apps/server`)
 
