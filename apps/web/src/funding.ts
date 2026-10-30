@@ -1,7 +1,11 @@
 import { Utils } from '@bsv/sdk'
-import { wocTxUrl, type HtlcContext, type Network } from '@agentswap/core'
-// Not exported from @agentswap/core's index yet; replace with the package import once P1 exports it.
-import { createBrc29Payment, type Brc29Payment } from '../../../packages/core/src/kit/client/payments'
+import {
+  createBrc29Payment,
+  wocTxUrl,
+  type Brc29Payment,
+  type HtlcContext,
+  type Network,
+} from '@agentswap/core'
 
 // "Fund the agent" (docs/FLASHCROWD_PLAN.md, P3 step 6): the user's wallet pays the agent's identity key with BRC-29.
 // The output is locked to a one-time key derived from the agent's identity key, so the agent only finds it with the

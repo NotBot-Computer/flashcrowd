@@ -6,9 +6,8 @@ import {
   type CreateActionArgs,
   type WalletInterface,
 } from '@bsv/sdk'
-import type { HtlcContext } from '@agentswap/core'
+import { acceptBrc29Payment, type HtlcContext } from '@agentswap/core'
 import { describe, expect, it, vi } from 'vitest'
-import { acceptBrc29Payment } from '../../../packages/core/src/kit/client/payments'
 import {
   fundAgent,
   fundingProblem,

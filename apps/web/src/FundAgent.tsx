@@ -72,13 +72,6 @@ export function FundAgent({ session, serverNetwork }: { session?: Session; serve
         takes the payment in with it.
       </p>
 
-      {wrongNetwork && (
-        <p role="alert">
-          Your wallet is on {session.network}, the server on {serverNetwork}. Switch BSV Desktop to {serverNetwork}{' '}
-          and connect again.
-        </p>
-      )}
-
       <div className="fund-form">
         <label>
           <span>Agent identity key</span>
@@ -105,6 +98,7 @@ export function FundAgent({ session, serverNetwork }: { session?: Session; serve
         </button>
       </div>
       {problem && <p className="field-error">{problem}</p>}
+      {wrongNetwork && <p className="field-error">Sending is off until your wallet is on {serverNetwork}.</p>}
       {session.network === 'mainnet' && !wrongNetwork && (
         <p className="muted">This is mainnet: the payment is real BSV and cannot be undone.</p>
       )}

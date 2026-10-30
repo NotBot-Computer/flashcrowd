@@ -9,6 +9,7 @@ import {
   type CheckResult,
   type PreparedFunding,
 } from './checks'
+import { StatusChip } from './Dashboard'
 
 type Status = { state: 'idle' } | { state: 'running' } | { state: 'done'; result: CheckResult; wocUrl?: string }
 
@@ -141,11 +142,7 @@ function CheckRow(props: { title: string; call: string; note: string; status: St
 }
 
 function StatusBadge({ status }: { status: Status }) {
-  if (status.state === 'idle') return <span className="badge">Not run</span>
-  if (status.state === 'running') return <span className="badge">Running</span>
-  return status.result.ok ? (
-    <span className="badge badge-pass">Pass</span>
-  ) : (
-    <span className="badge badge-fail">Fail</span>
-  )
+  if (status.state === 'idle') return <StatusChip label="Not run" tone="neutral" />
+  if (status.state === 'running') return <StatusChip label="Running" tone="progress" />
+  return status.result.ok ? <StatusChip label="Pass" tone="success" /> : <StatusChip label="Fail" tone="danger" />
 }

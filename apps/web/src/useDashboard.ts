@@ -18,8 +18,8 @@ export type Source =
 
 /** Feed events come in bursts (a group matching, three locks); one reload covers a burst. */
 const RELOAD_DELAY_MS = 600
-/** Reload anyway this often, in case a tunnel holds back the feed's events. */
-const POLL_MS = 15_000
+/** Reload anyway this often, in case a tunnel holds back the feed's events: a group's steps then still show. */
+const POLL_MS = 5_000
 
 /**
  * The dashboard's data: the server's when it answers, simulation data and the reason when it does not. Every feed
