@@ -158,8 +158,8 @@ export class LocalCoordinator {
       },
       settlement: async (groupId): Promise<Settlement> => {
         member(groupId)
-        // Like the server: refunds open one block after refundHeight, when the wallet takes them as final.
-        const g = this.update(groupId, { type: 'height', height: (await this.o.height()) - 1 })
+        // Core opens refunds above refundHeight, where the wallet takes them as final.
+        const g = this.update(groupId, { type: 'height', height: await this.o.height() })
         return {
           groupId,
           status: g.status,
