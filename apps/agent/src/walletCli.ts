@@ -7,7 +7,7 @@
 // The network comes from BSV_NETWORK (testnet unless "mainnet"). The key itself is never printed.
 import { readFileSync } from 'node:fs'
 import { ARCADE_URL, parseNetwork, wocTxUrl } from '@agentswap/core'
-// Not exported from core's index; imported by path like acceptBrc29Payment in receive.ts.
+// Not exported from core's index; imported by path.
 import { ArcadeChainTracker } from '../../../packages/core/src/kit/client/arcadeChainTracker'
 import { depositAddress, sweepDeposits } from './funding'
 import { httpCoordinator } from './httpCoordinator'

@@ -1,7 +1,7 @@
 // Funding an agent with the web app's payment file (BRC-29 to its identity key), on wallet-toolbox's mock chain.
+import { createBrc29Payment } from '@agentswap/core'
 import type { Wallet } from '@bsv/wallet-toolbox'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { createBrc29Payment } from '../../../packages/core/src/kit/client/payments'
 import { createMockChain, type MockChain } from '../../../packages/core/test/helpers/mockchain'
 import { FUNDING_KIND, parseFundingFile, receiveFunding, type AgentFundingFile } from '../src/receive'
 

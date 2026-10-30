@@ -1,9 +1,7 @@
 // Funding an agent from the web app: a person pays the agent's identity key with BRC-29 from BSV Desktop, and the
 // page downloads a "payment file". The agent checks that the file is meant for it and takes the payment in.
-import { wocTxUrl, type Network } from '@agentswap/core'
+import { acceptBrc29Payment, wocTxUrl, type Brc29Payment, type Network } from '@agentswap/core'
 import { Transaction, type ChainTracker, type WalletInterface } from '@bsv/sdk'
-// Not exported from core's index yet (asked of P1); imported by path until then.
-import { acceptBrc29Payment, type Brc29Payment } from '../../../packages/core/src/kit/client/payments'
 
 export const FUNDING_KIND = 'flashcrowd agent funding'
 
