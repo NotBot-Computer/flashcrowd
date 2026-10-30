@@ -531,6 +531,18 @@ describe('the live parts', () => {
     expect(text).toMatch(/^id: 1\ndata: \{/)
   })
 
+  it('gives the same events as a plain reply, after a given id', async () => {
+    const server = await startServer()
+    const url = `${server.base}/api/feed/history`
+    expect((await get(url)).body).toEqual([])
+    const events = ['one', 'two', 'three'].map((message) => server.feed.publish({ type: 'agent', message }))
+    expect((await get(url)).body).toEqual(events)
+    expect((await get(`${url}?after=0`)).body).toEqual(events)
+    expect((await get(`${url}?after=${events[0].id}`)).body).toEqual(events.slice(1))
+    expect((await get(`${url}?after=${events[2].id}`)).body).toEqual([])
+    for (const after of ['-1', '1.5', 'x']) expect((await get(`${url}?after=${after}`)).status).toBe(400)
+  })
+
   it('opens the stream before there is any event', async () => {
     const server = await startServer()
     const res = await fetch(`${server.base}/api/feed`, { signal: AbortSignal.timeout(5_000) })

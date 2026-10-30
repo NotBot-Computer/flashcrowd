@@ -57,6 +57,13 @@ export function createApp({ network, coordinator, feed, authWallet }: AppDeps): 
     res.json(coordinator.settlement(param(req, 'id')))
   })
 
+  // The same events as a plain reply, for clients behind what holds back an event stream (a trycloudflare tunnel).
+  app.get('/api/feed/history', (req, res) => {
+    const after = Number(req.query.after ?? 0)
+    if (!Number.isSafeInteger(after) || after < 0) throw new HttpError(400, 'after must be an event id')
+    res.json(feed.since(after))
+  })
+
   app.get('/api/feed', (req, res) => {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',

@@ -1,6 +1,6 @@
 # FlashCrowd geliştirici kılavuzu
 
-Bu kılavuz `main` dalının `3adffa0` commit'indeki kodu dosya dosya anlatır. Her dosyanın ne işe yaradığını ve içindeki her
+Bu kılavuz `main` dalının `9584ca7` commit'indeki kodu dosya dosya anlatır. Her dosyanın ne işe yaradığını ve içindeki her
 dışa açık fonksiyonun, sınıfın ve tipin görevini açıklar. Satır satır okuma yerine geçmez: amaç, bir değişiklik yapmadan
 önce doğru dosyayı bulmak ve o dosyanın kurallarını bilmektir.
 
@@ -12,7 +12,7 @@ testnet'le başlar. Kalan işler [bölüm 11](#11-açık-işler)'de.
 1. [Proje ne yapıyor](#1-proje-ne-yapıyor)
 2. [Kavramlar](#2-kavramlar)
 3. [Kurulum ve komutlar](#3-kurulum-ve-komutlar)
-4. [Bilinen sorun: testnet:htlc açılmıyor](#4-bilinen-sorun-testnethtlc-açılmıyor)
+4. [Kural: `paths` tsconfig.json'a konmaz](#4-kural-paths-tsconfigjsona-konmaz)
 5. [Repo haritası](#5-repo-haritası)
 6. [packages/core](#6-packagescore)
 7. [apps/server](#7-appsserver)
@@ -122,22 +122,22 @@ Mainnet için `.env`'de `BSV_NETWORK=mainnet` yazın. Anahtar yollarını `walle
 `~` işaretini açmaz. Ajanlar başka makinedeyse sunucuyu `cloudflared tunnel --url http://localhost:8787` ile açın ve adresi
 onların `SERVER_URL` ayarına yazın. Yeni tünel yeni adres demektir.
 
-| Komut (kök dizinden)                                                    | Ne yapar                                                                                      |
-| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `npm run typecheck`                                                     | Bütün paketlerde tip kontrolü                                                                 |
-| `npm test`                                                              | Bütün paketlerin testleri                                                                     |
-| `npm run build -w @agentswap/web`                                       | Web'in üretim derlemesi (CI bunu da çalıştırır)                                               |
-| `npm run format`                                                        | Prettier                                                                                      |
-| `npm run wallet:init -w @agentswap/server`                              | Koordinatör ve satıcı anahtarlarını oluşturur                                                 |
-| `npm run wallet:init -w @agentswap/agent -- <dosya>`                    | Bir ajan anahtarı oluşturur                                                                   |
-| `npm run wallet -w @agentswap/agent -- address <dosya>`                 | Ajanın kimliği ve para yatırma adresi                                                         |
-| `npm run wallet -w @agentswap/agent -- sweep <dosya> <txid>.<vout>`     | Madenciliği bitmiş yatırımı cüzdana alır                                                      |
-| `npm run wallet -w @agentswap/agent -- balance <dosya>`                 | Harcanabilir bakiye                                                                           |
-| `npm run wallet -w @agentswap/agent -- receive <dosya> <ödeme dosyası>` | Web'in "Ajanı fonla" dosyasını cüzdana alır                                                   |
-| `npm run wallet -w @agentswap/agent -- refund <dosya>`                  | Yarım kalan koşunun kilitli paylarını defterden iade eder                                     |
-| `BSV_NETWORK=mainnet npm run testnet:htlc -w @agentswap/core -- init`   | HTLC'yi sunucusuz zincirde deneyen script ([bölüm 4](#4-bilinen-sorun-testnethtlc-açılmıyor)) |
-| `npm run dev:agent -- --agents 3 --check`                               | Ajanlar hazır mı, satın alma yapmaz                                                           |
-| `npm run dev:agent -- --agents 3`                                       | Gerçek satın alma                                                                             |
+| Komut (kök dizinden)                                                    | Ne yapar                                                                                   |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `npm run typecheck`                                                     | Bütün paketlerde tip kontrolü                                                              |
+| `npm test`                                                              | Bütün paketlerin testleri                                                                  |
+| `npm run build -w @agentswap/web`                                       | Web'in üretim derlemesi (CI bunu da çalıştırır)                                            |
+| `npm run format`                                                        | Prettier                                                                                   |
+| `npm run wallet:init -w @agentswap/server`                              | Koordinatör ve satıcı anahtarlarını oluşturur                                              |
+| `npm run wallet:init -w @agentswap/agent -- <dosya>`                    | Bir ajan anahtarı oluşturur                                                                |
+| `npm run wallet -w @agentswap/agent -- address <dosya>`                 | Ajanın kimliği ve para yatırma adresi                                                      |
+| `npm run wallet -w @agentswap/agent -- sweep <dosya> <txid>.<vout>`     | Madenciliği bitmiş yatırımı cüzdana alır                                                   |
+| `npm run wallet -w @agentswap/agent -- balance <dosya>`                 | Harcanabilir bakiye                                                                        |
+| `npm run wallet -w @agentswap/agent -- receive <dosya> <ödeme dosyası>` | Web'in "Ajanı fonla" dosyasını cüzdana alır                                                |
+| `npm run wallet -w @agentswap/agent -- refund <dosya>`                  | Yarım kalan koşunun kilitli paylarını defterden iade eder                                  |
+| `BSV_NETWORK=mainnet npm run testnet:htlc -w @agentswap/core -- init`   | HTLC'yi sunucusuz zincirde deneyen script ([bölüm 4](#4-kural-paths-tsconfigjsona-konmaz)) |
+| `npm run dev:agent -- --agents 3 --check`                               | Ajanlar hazır mı, satın alma yapmaz                                                        |
+| `npm run dev:agent -- --agents 3`                                       | Gerçek satın alma                                                                          |
 
 ### Ortam değişkenleri
 
@@ -175,21 +175,18 @@ Sunucunun ürettiği dosyalar, `SERVER_DATA_DIR` içinde:
 | `seller-secrets-<ağ>.json` | Grup başına `K`                    | Gizlidir, mod 600                           |
 | `seller-<ağ>.sqlite`       | Satıcının cüzdan veritabanı        | Silinirse satıcı bakiyesi kaybolmuş görünür |
 
-## 4. Bilinen sorun: testnet:htlc açılmıyor
+## 4. Kural: `paths` tsconfig.json'a konmaz
 
-**`main`'de temiz kurulumda `npm run testnet:htlc -w @agentswap/core` başlarken hata veriyor:**
+`@bsv/sdk`'yı CommonJS derlemesine yönlendiren `paths` ayarı yalnız tip kontrolü içindir ve `tsconfig.check.json`'da durur. `typecheck` betiği de
+`tsc -p tsconfig.check.json` çalıştırır. `tsx`, `tsconfig.json`'daki `paths`'i çalışma anında da uygular; ayar oraya konursa uygulama şu hatayla açılmaz:
 
 ```text
-SyntaxError: The requested module '@bsv/sdk' does not provide an export named 'BigNumber'
+SyntaxError: The requested module '@bsv/sdk' does not provide an export named 'LockingScript'
 ```
 
-Demo yolunu etkilemez: sunucu, ajan ve web komutları temiz kurulumda açılıyor.
+Vitest kendi `alias` ayarıyla çalıştığı için testler bu hatayı yakalamaz. Yeni bir paket açarken aynı düzeni kullanın ve uygulamayı ayrıca çalıştırıp deneyin.
 
-**Neden:** `packages/core/tsconfig.json` içindeki `paths` ayarı `@bsv/sdk`'yı CommonJS derlemesine yönlendiriyor. Bu ayar tip kontrolü
-içindir, ama `tsx` de `tsconfig.json`'daki `paths`'i çalışma anında uygular.
-
-**Çözüm:** `apps/server` ve `apps/agent`'ın yaptığını yapmak (#26): `paths` ayarı `tsconfig.check.json`'a taşınır, `typecheck` betiği
-`tsc -p tsconfig.check.json` olur. Yeni bir paket açarken de aynı kuralı uygulayın.
+Çalışma anında uygulama kodu SDK'nın ESM, wallet-toolbox ise CommonJS derlemesini yükler. Toolbox'tan gelen bir SDK nesnesini doğrudan kullanmayın, kendi kopyanızla yeniden kurun (örnek: `sweepDeposits`'teki `MerklePath.fromBinary`).
 
 ## 5. Repo haritası
 
@@ -500,6 +497,7 @@ ayrıştırılmış gövde üzerinden kontrol edilir. `allowUnauthenticated: tru
 | `GET /api/groups/:id`                | `group(id)`          | Hayır |
 | `GET /api/groups/:id/settlement`     | `settlement(id)`     | Hayır |
 | `GET /api/feed`                      | `Feed`               | Hayır |
+| `GET /api/feed/history?after=<id>`   | `feed.since(after)`  | Hayır |
 | `POST /api/intents`                  | `submitIntent`       | Evet  |
 | `POST /api/groups/:id/authorize`     | `authorize`          | Evet  |
 | `POST /api/groups/:id/contributions` | `submitContribution` | Evet  |
@@ -570,7 +568,7 @@ grup `funding_failed` olur ve `refundHeight`'ı bekler.
 
 ### 7.6 `src/feed.ts`
 
-`Feed`: son 200 olayı tutar, abonelere yayınlar. `publish` olaya `id`, `at` ve `txid` varsa `wocUrl` ekler. `since(afterId)`
+`Feed`: son 200 olayı tutar, abonelere yayınlar. Olaylar bellektedir ve numaraları yeniden başlatınca 1'den başlar: sunucu yeniden açılınca geçmiş silinir, açık sayfalar yenilenmelidir. `publish` olaya `id`, `at` ve `txid` varsa `wocUrl` ekler. `since(afterId)`
 geçmişi, `subscribe` canlı akışı verir. `wocUrl` her zaman sunucuda üretilir, istemciden alınmaz.
 
 ### 7.7 `src/chain.ts`
@@ -660,13 +658,11 @@ React ve Vite. Okuma cüzdan istemez; cüzdan yalnız "Ajanı fonla" ve kontroll
 | `public/manifest.json`                  | BRC-73 izinleri: `flashcrowd htlc`, `flashcrowd terms`, BRC-29                                                                              |
 | `vite.config.ts`                        | Port 5173. `/api` ve `/health` isteklerini `SERVER_URL`'e (tünel) ya da yerel sunucuya yönlendirir                                          |
 
-`apps/web/README.md` hâlâ eski Swap ve Sell sayfalarını anlatıyor; geçerli olan bu tablodur.
-
 Bilinen sınırlar (kök README): `localhost`'ta BSV Desktop manifest'in grup izinlerini yüklemez ve her protokol için ayrı sorar. Kullanıcının BSV Desktop'tan iadesi denenmedi.
 
 ## 10. Testler ve araçlar
 
-Testler: core 56, sunucu 17, ajan 30, web 62. Hepsi sahte zincirde veya sahte verilerle çalışır, **gerçek ağ davranışını kanıtlamaz**; o kanıt kök README'deki mainnet işlemleridir.
+Testler: core 56, sunucu 18, ajan 30, web 62. Hepsi sahte zincirde veya sahte verilerle çalışır, **gerçek ağ davranışını kanıtlamaz**; o kanıt kök README'deki mainnet işlemleridir.
 
 | Test dosyası                                                                                               | Kapsadığı                                                                                       |
 | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -687,7 +683,7 @@ Tek paket: `npm test -w @agentswap/server`. Tek test: `cd apps/server && npx vit
 
 **`@bsv/sdk`'nın iki derlemesi:** wallet-toolbox CommonJS derlemesini yükler. Testlerde sınıflar iki kez yüklenmesin diye
 `vitest.config.ts` dosyalarında `alias`, tip kontrolünde `paths` vardır. `paths`, `tsx` tarafından okunan `tsconfig.json`'a
-konursa uygulama açılmaz ([bölüm 4](#4-bilinen-sorun-testnethtlc-açılmıyor)).
+konursa uygulama açılmaz ([bölüm 4](#4-kural-paths-tsconfigjsona-konmaz)).
 
 | Dosya                              | Görevi                                                          |
 | ---------------------------------- | --------------------------------------------------------------- |
@@ -704,11 +700,10 @@ konursa uygulama açılmaz ([bölüm 4](#4-bilinen-sorun-testnethtlc-açılmıyo
 
 | İş                                                                                           | Sahibi |
 | -------------------------------------------------------------------------------------------- | ------ |
-| `testnet:htlc` için `paths` düzeltmesi ([bölüm 4](#4-bilinen-sorun-testnethtlc-açılmıyor))   | P1     |
 | Demo videosu (≤ 2:30), README'ye linki                                                       | P3     |
 | Devfolio metni                                                                               | P4     |
 | Repoyu public yapmak, geçmişte anahtar taraması (`docs/SUBMISSION.md`)                       | Herkes |
-| `apps/web/README.md` ve `apps/agent/README.md`'deki eski cümleler                            | P3, P4 |
+| `apps/agent/README.md`'deki eski testnet cümleleri                                           | P4     |
 | `matchIntents`'in küçük niyette hata vermesi: sunucu etrafından dolaşıyor, core'a alınabilir | P1     |
 
 Bu tablo yazıldığı andaki durumdur; güncelini `docs/SUBMISSION.md`'den ve açık PR'lardan takip edin.
@@ -757,7 +752,7 @@ satıcının aldığı paranın kaydı orada. Eski grupların parası zincirde k
 
 | Belirti                                                | Neden                                                                | Çözüm                                               |
 | ------------------------------------------------------ | -------------------------------------------------------------------- | --------------------------------------------------- |
-| `does not provide an export named ...` (`@bsv/sdk`)    | `tsconfig.json`'daki `paths`, `tsx`'i yanlış derlemeye yönlendiriyor | [Bölüm 4](#4-bilinen-sorun-testnethtlc-açılmıyor)   |
+| `does not provide an export named ...` (`@bsv/sdk`)    | `tsconfig.json`'daki `paths`, `tsx`'i yanlış derlemeye yönlendiriyor | [Bölüm 4](#4-kural-paths-tsconfigjsona-konmaz)      |
 | `not set in .env: SERVER_KEY_FILE, SELLER_KEY_FILE`    | Anahtarlar tanımlı değil                                             | `npm run wallet:init -w @agentswap/server`          |
 | Testler geçiyor ama uygulama açılmıyor                 | Vitest `alias` kullanır, uygulama `tsx` ile açılır                   | Uygulamayı ayrıca çalıştırıp deneyin                |
 | 401 `this route needs a BRC-103 signed request`        | İstek imzasız                                                        | `AuthFetch` kullanın                                |
@@ -774,6 +769,7 @@ satıcının aldığı paranın kaydı orada. Eski grupların parası zincirde k
 | Ajan `needs funds`                                     | Bakiye teklif + 200'den az                                           | `address`, para gönder, bir onay, `sweep`           |
 | `sweep`: `not mined yet`                               | Yatırım madencilik bekliyor                                          | Yaklaşık 10 dakika sonra yeniden deneyin            |
 | Sunucu `<dosya> is not valid JSON`                     | Durum dosyası bozuk                                                  | Dosyayı düzeltin veya taşıyın; sunucu bilerek ezmez |
+| Feed tünelden gelmiyor                                 | `trycloudflare` hızlı tüneli canlı akışı (SSE) tutuyor               | `GET /api/feed/history`'yi yoklayın                 |
 
 **Bilinen sınırlar:**
 

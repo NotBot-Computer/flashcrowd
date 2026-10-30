@@ -50,6 +50,7 @@ core check, 503 chain unreachable.
 | `GET /api/groups/:id/settlement`     |                                                                    | `{ groupId, status, refundHeight, refundAvailable, claim?, claimTx?, refunds }` |
 | `POST /api/groups/:id/refunds`       | `{ txid }`                                                         | `PurchaseGroup`                                                                 |
 | `GET /api/feed`                      |                                                                    | SSE, see below                                                                  |
+| `GET /api/feed/history?after=<id>`   |                                                                    | The feed's events after `id` (all without it), oldest first, as JSON            |
 | `POST /api/events`                   | `{ message, txid? }`                                               | 201 the published event                                                         |
 
 Three routes go beyond the plan's table, because the flow needs them:
@@ -63,7 +64,7 @@ Three routes go beyond the plan's table, because the flow needs them:
 
 Feed events are `FeedEvent` plus `id` and, with a `txid`, `wocUrl`. They arrive as plain SSE messages
 (`EventSource.onmessage`), the last 200 first. `POST /api/events` always publishes type `agent` under the caller's key,
-so an agent cannot fake a claim in the feed. Never take a `wocUrl` from a client.
+so an agent cannot fake a claim in the feed. A `trycloudflare` quick tunnel holds back the event stream, so clients behind one poll `/api/feed/history`. Never take a `wocUrl` from a client.
 
 ### An agent's calls
 
