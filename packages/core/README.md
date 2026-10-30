@@ -75,26 +75,29 @@ interface CoreContext {
 `src/htlc.ts`, `src/collective.ts` and `src/spendPolicy.ts` (docs/FLASHCROWD_TASK.md). HTLC functions take an
 `HtlcContext` (`wallet`, `network`, `originator?`): no overlay.
 
-| Function                                                           | Who               | What                                                                 |
-| ------------------------------------------------------------------ | ----------------- | -------------------------------------------------------------------- |
-| `newSecret()`, `encryptResource(K, data)`                          | seller            | fresh K, H = sha256(K); AES-256-GCM ciphertext and its hash          |
-| `signTerms(ctx, terms)` / `verifyTerms(terms)`                     | seller / everyone | seller identity signature over the terms, incl. the shares           |
-| `prepareContribution(ctx, terms)`                                  | buyer             | `{ contribution, beef }`: funding signed, not sent (noSend)          |
-| `signRefund(ctx, terms, contribution)`                             | seller            | refund pre-signature, sighash 0xC2, nLockTime = refundHeight         |
-| `verifyRefundSignature(terms, c, sig)`                             | buyer             | local check, no wallet                                               |
-| `broadcastContribution(ctx, terms, c, beef)`                       | buyer             | sends only with a valid refund signature; `BroadcastError` otherwise |
-| `abandonContribution(ctx, c)`                                      | buyer             | `abortAction` when no refund signature comes                         |
-| `verifyFunding(terms, c, chainTracker?)`                           | seller, server    | SPV (Arcade by default) + the agreed output                          |
-| `claimContributions(ctx, terms, K, contributions)`                 | seller            | one transaction, one input per share; refused from refundHeight      |
-| `secretFromClaim(terms, claimTx)`, `decryptResource(terms, K, ct)` | buyer             | K from the claim, then the data                                      |
-| `refundContribution(ctx, terms, c)`                                | buyer             | after refundHeight; before it the wallet refuses (not final)         |
-| `splitPrice`, `openGroup`, `matchIntents`, `advanceGroup`          | server            | pure matching and state machine (`IllegalTransitionError`)           |
-| `checkSpend`, `assertSpend`                                        | agent             | hard limits before every funding signature (`SpendPolicyError`)      |
+| Function                                                           | Who               | What                                                                                    |
+| ------------------------------------------------------------------ | ----------------- | --------------------------------------------------------------------------------------- |
+| `newSecret()`, `encryptResource(K, data)`                          | seller            | fresh K, H = sha256(K); AES-256-GCM ciphertext and its hash                             |
+| `signTerms(ctx, terms)` / `verifyTerms(terms)`                     | seller / everyone | seller identity signature over the terms, incl. the shares                              |
+| `prepareContribution(ctx, terms)`                                  | buyer             | `{ contribution, beef }`: funding signed, not sent (noSend)                             |
+| `signRefund(ctx, terms, contribution)`                             | seller            | refund pre-signature, sighash 0xC2, nLockTime = refundHeight                            |
+| `verifyRefundSignature(terms, c, sig)`                             | buyer             | local check, no wallet                                                                  |
+| `broadcastContribution(ctx, terms, c, beef)`                       | buyer             | sends only with a valid refund signature; `BroadcastError` otherwise                    |
+| `abandonContribution(ctx, c)`                                      | buyer             | `abortAction` when no refund signature comes                                            |
+| `verifyFunding(terms, c, chainTracker?)`                           | seller, server    | SPV (Arcade by default) + the agreed output                                             |
+| `claimContributions(ctx, terms, K, contributions)`                 | seller            | one transaction, one input per share; refused from `refundHeight - CLAIM_MARGIN_BLOCKS` |
+| `secretFromClaim(terms, claimTx)`, `decryptResource(terms, K, ct)` | buyer             | K from the claim, then the data                                                         |
+| `refundContribution(ctx, terms, c)`                                | buyer             | after refundHeight; before it the wallet refuses (not final)                            |
+| `splitPrice`, `openGroup`, `matchIntents`, `advanceGroup`          | server            | pure matching and state machine (`IllegalTransitionError`)                              |
+| `checkSpend`, `assertSpend`                                        | agent             | hard limits before every funding signature (`SpendPolicyError`)                         |
 
 - HTLC keys: `[1, 'flashcrowd htlc']`, keyID = groupId, counterparty `'anyone'`, so anyone derives a party's key
   from its identity key (`htlcKeyOf`). Terms: `[1, 'flashcrowd terms']`, same keyID and counterparty.
 - Each buyer funds its own output; the claim is atomic, funding is not. If a buyer never funds, the seller does not
   claim and the funded buyers refund after refundHeight. A revealed key proves disclosure, not data quality.
+- Claim margin: `claimContributions` refuses from `refundHeight - CLAIM_MARGIN_BLOCKS` (2 blocks), so a claim has
+  `CLAIM_MARGIN_BLOCKS + 1` blocks to be mined before a refund can be. The seller (the server) picks `refundHeight`
+  above the current height + `CLAIM_MARGIN_BLOCKS` + the blocks the buyers need to fund.
 - Tests on the mock chain only (`test/htlc.test.ts`, `test/collective.test.ts`, `test/spendPolicy.test.ts`); no
   testnet transaction yet.
 
