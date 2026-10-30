@@ -1,73 +1,125 @@
-# AgentSwap
+# FlashCrowd
 
-**Swap-and-pay rails for AI agents on BSV.** Non-custodial atomic swap offers for BSV-21 tokens, a pay-per-call
-(HTTP 402) service, and an AI agent with its own BRC-100 wallet that swaps and pays by itself. Every step is
-verifiable on WhatsOnChain.
+**AI agents buy a dataset together that none of them could afford alone, and the seller is paid only by revealing
+the decryption key on chain.** Every agent locks its share in its own HTLC output, from its own wallet. Nobody in the
+middle holds keys or money, and every step is a BSV transaction on WhatsOnChain.
+
+> FlashCrowd coordinates autonomous agents into temporary purchasing groups and combines multi-party non-custodial
+> funding with delivery-conditional settlement on BSV.
 
 Built at the [TUM Blockchain & AI Hackathon 2026](https://hackathon.tum-blockchain.com) (Munich, 30–31 October 2026)
-for the **BSV Association track: DeFi Rails for Agentic Payments**.
-
-> **Status:** scaffold. Following the hackathon rules, the product is built during the event (from Friday 30 October, 09:00).
+for the **BSV Association track: DeFi Rails for Agentic Payments**. The repository is still named `agentswap-bsv`
+after our first idea; the team switched to FlashCrowd on 30 October.
 
 ## The problem
 
-AI agents pay for APIs, data and compute per call. Services want to price in a stable unit or in their own credit
-token, while agents and users hold BSV. Today that takes a custodial exchange, an account or a credit card, and none
-of those fit autonomous, high-frequency micropayments.
+AI agents increasingly need paid data: market history, research datasets, model outputs. Many agents need the same
+reusable dataset, but its price is too high for any single one of them. Pooling money today means trusting someone
+to hold it, and paying first means trusting the seller to deliver.
 
-## What AgentSwap does
+## How it works
 
-1. **Atomic offers.** A maker signs "N tokens for P sats" from their own wallet as a partial transaction
-   (SIGHASH_SINGLE | ANYONECANPAY). A person or an agent fills it in one transaction. No escrow and no custody;
-   the maker cancels by spending the token UTXO.
-2. **Order book.** A key-less relay that validates offers, lists them and streams fills.
-3. **Paid AI service.** An HTTP 402 endpoint priced per call (BRC-121, `@bsv/402-pay`).
-4. **The agent.** An LLM agent with its own BRC-100 wallet and a hard spend policy: it finds the cheapest offer,
-   swaps, then pays per call.
-5. **Web app.** Connects to BSV Desktop or BSV Browser through `WalletClient` to swap, list tokens, and fund and
-   watch the agent.
+1. **Intents.** Each agent posts what it wants to buy and the most it will pay.
+2. **Group.** The coordinator matches compatible intents into a group and splits the price into shares (exact integer
+   sats, never above an agent's maximum). The seller signs the terms: shares, the hash `H = sha256(K)` of a fresh key
+   `K`, the hash of the encrypted dataset, and a refund height.
+3. **Check.** Each agent verifies the terms and its spend policy in code. An agent whose policy says no signs nothing.
+4. **Refund first.** Each agent signs its funding transaction without broadcasting it and sends the seller only the
+   outpoint. The seller pre-signs that output's refund, valid from the refund height. The agent checks the signature.
+5. **Fund.** Only then does the agent broadcast its funding: one HTLC output per agent.
+6. **Claim.** The seller spends all the outputs in one transaction by revealing `K`. Its wallet needs no funds; the
+   claim's fee comes out of the HTLC value.
+7. **Decrypt.** Every agent reads `K` from the claim transaction and decrypts the dataset.
+
+If the seller does not claim, each agent takes its share back after the refund height with the pre-signed refund.
+
+```
+OP_IF   OP_SHA256 <H> OP_EQUALVERIFY <seller> OP_CHECKSIG          claim:  <seller sig> <K> OP_1
+OP_ELSE <seller> OP_CHECKSIGVERIFY <buyer> OP_CHECKSIG              refund: <buyer sig> <seller pre-sig> OP_0
+OP_ENDIF
+```
+
+BSV has no `OP_CHECKLOCKTIMEVERIFY` (it is a NOP since Genesis), so the timeout is not in the script. It is the
+refund's nLockTime: the seller pre-signs the refund with `SIGHASH_NONE | ANYONECANPAY | FORKID`, and the network does
+not accept the refund before its nLockTime. We checked this on mainnet (table below). Claims stop 2 blocks before the
+refund height, so a claim has time to be mined before a refund can be.
 
 ## Track requirements
 
-| Requirement                           | AgentSwap                                                                      |
-| ------------------------------------- | ------------------------------------------------------------------------------ |
-| BSV SDK and Wallet Toolbox (ts-stack) | `@bsv/sdk` throughout; wallet-toolbox for the agent's and the server's wallets |
-| A standard BSV wallet for user flows  | `WalletClient` → BSV Desktop / BSV Browser; keys never leave the wallet        |
-| Real transactions                     | Testnet, broadcast through Arcade (links below)                                |
-| Non-custodial                         | Users sign their own swaps; the order book holds no keys or funds              |
-| An AI agent pays through the project  | The agent swaps and pays the 402 service from its own wallet                   |
+| Requirement                           | FlashCrowd                                                                                                                   |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| BSV SDK and Wallet Toolbox (ts-stack) | `@bsv/sdk` 3.2.1 for the scripts, keys and signatures; `@bsv/wallet-toolbox` 2.14.9 for the agents' and the seller's wallets |
+| A standard BSV wallet for user flows  | `WalletClient` → BSV Desktop. BSV Desktop 3.3.1 signs and broadcasts an HTLC funding exactly as an agent does (issue #2)     |
+| Real transactions                     | On mainnet, broadcast through Arcade (table below). The organizers had no testnet coins; `BSV_NETWORK` switches networks     |
+| Non-custodial                         | Each share sits in its buyer's own HTLC output. The coordinator holds no keys and no money                                   |
+| An AI agent pays through the project  | Three agents fund one group from their own wallets, within a spend policy enforced in code                                   |
 
 ## Repository layout
 
 ```
-packages/core   on-chain logic: demo token, atomic offers
-apps/server     order book API, paid 402 service, live feed
-apps/web        React app: wallet connection, Swap / Sell / Agent pages
-apps/agent      AI agent: own wallet, spend policy, tools
-docs/           architecture, team plan, similar projects, submission checklist
+packages/core   on-chain logic: HTLC (htlc.ts), purchase groups (collective.ts), spend policy (spendPolicy.ts),
+                the on-chain check script (scripts/testnet-htlc.ts); also the earlier BSV-21 swap code, not used here
+apps/server     coordinator API with BRC-103 auth, mock seller with its own wallet, live feed (SSE)
+apps/web        dashboard (services, groups, funding, WoC links, live feed) and BSV Desktop wallet checks
+apps/agent      the agents: own wallet each, spend policy, the purchase flow, command line
+docs/           plan, architecture, team, submission checklist
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the flows and the custody model.
+[docs/FLASHCROWD_TASK.md](docs/FLASHCROWD_TASK.md) has the design and its constraints,
+[docs/FLASHCROWD_PLAN.md](docs/FLASHCROWD_PLAN.md) the plan (in Turkish). Each app's README has the details.
 
 ## Setup
 
-Prerequisites: Node.js 22 or newer, [BSV Desktop](https://desktop.bsvb.tech) on testnet (or
-[BSV Browser](https://mobile.bsvb.tech)), testnet coins, and the BSV developer pack (`AGENTS.md` in the repo root).
+Prerequisites: Node.js 22 or newer, [BSV Desktop](https://desktop.bsvb.tech) for the web app, and a few thousand
+sats per agent. Keys live in files outside the repo, never in `.env`.
 
 ```bash
 npm install
-cp .env.example .env
-npm run dev:server   # http://localhost:8787/health
-npm run dev:web      # http://localhost:5173
-npm run dev:agent
+cp .env.example .env    # BSV_NETWORK=mainnet or testnet; see the comments in the file
 ```
 
-In VS Code: **Terminal → Run Task → dev: all**. Checks: `npm run typecheck` and `npm test`.
+Coordinator and seller (apps/server). `wallet:init` creates two key files and prints the lines to paste into `.env`:
+
+```bash
+npm run wallet:init -w @agentswap/server
+npm run dev:server      # http://localhost:8787/health
+```
+
+Agents (apps/agent). Create a key per agent, send sats to its deposit address, then sweep them in after one
+confirmation:
+
+```bash
+npm run wallet:init -w @agentswap/agent -- ~/.agentswap/agent-1.key
+npm run wallet -w @agentswap/agent -- address ~/.agentswap/agent-1.key
+npm run wallet -w @agentswap/agent -- sweep ~/.agentswap/agent-1.key <txid>.<vout>
+npm run dev:agent -- --agents 3 --check   # until every agent is ready
+```
+
+Web app (apps/web):
+
+```bash
+npm run dev:web         # http://localhost:5173
+```
+
+In VS Code: **Terminal → Run Task → dev: all**. Checks: `npm run typecheck` and `npm test` (mock chain, no coins).
+
+## Run the demo
+
+1. Start the server and the web app, open http://localhost:5173 and connect BSV Desktop.
+2. `npm run dev:agent -- --agents 3`: three agents post intents, form a group, fund their shares and wait.
+3. The seller claims as soon as the group is fully funded. Each agent prints its share, the decrypted dataset's size and WoC links; the
+   dashboard shows the group, the funding bar and the links.
+4. Refund path: restart the server with `SELLER_NO_CLAIM=true`, run the agents again and wait `SELLER_LOCK_BLOCKS`
+   blocks (about 10 minutes each). The agents refund themselves.
+
+On-chain check of the HTLC alone, without the server: `BSV_NETWORK=mainnet npm run testnet:htlc -w @agentswap/core --
+init | run | refund` (header of `packages/core/scripts/testnet-htlc.ts`).
 
 ## Example transactions (WhatsOnChain)
 
-Mainnet, from the FlashCrowd HTLC check on 30 October 2026 (`packages/core/scripts/testnet-htlc.ts`, start height
-973331; details in issue #2). The fundings and claims are in block 973332.
+Mainnet, 30 October 2026. The first six are from the HTLC check (`packages/core/scripts/testnet-htlc.ts`, start
+height 973331, fundings and claims in block 973332); details in issue #2. The last four are a full run through the
+server: three agents bought the 12,000-sat dataset as group `group-de38ed6a…`, all in block 973335 (#21).
 
 | Step                                                                                   | Transaction                                                                                               |
 | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -77,8 +129,27 @@ Mainnet, from the FlashCrowd HTLC check on 30 October 2026 (`packages/core/scrip
 | Refund before refundHeight: refused by the network (nLockTime in the future)           | `edf04c52…`, never accepted                                                                               |
 | Seller's claim after the refused refund (group B)                                      | [ab6cf9da…](https://whatsonchain.com/tx/ab6cf9da48402af97a9ccd10d826904b361ad78866e47892702963f58e8ec505) |
 | Buyer refunds its share after refundHeight (group C)                                   | [99de9895…](https://whatsonchain.com/tx/99de9895b6f1e2214341f0a5055e3ff379737d05a7853f615365aa53043601d0) |
+| BSV Desktop funds an HTLC (signed with `noSend`, then sent with `sendWith`)            | [30bf87f5…](https://whatsonchain.com/tx/30bf87f56a73ebc9ec3440c96900dd7c1a18b731c7e64a5f60ddf650c54c8aba) |
 | User funds the agent from BSV Desktop                                                  | _tbd_                                                                                                     |
-| Three agents fund one group (demo)                                                     | _tbd_                                                                                                     |
+| Agent 1 funds its share, 3,000 sats (demo group)                                       | [4c643186…](https://whatsonchain.com/tx/4c6431861b686fe8d894c18dc1a9a606c298235b318088676b89daec83d5ddf0) |
+| Agent 2 funds its share, 4,000 sats (demo group)                                       | [227d3627…](https://whatsonchain.com/tx/227d3627044cf119784de324d8794b13895459dae2fed9f097e8bdc8d0e1642e) |
+| Agent 3 funds its share, 5,000 sats (demo group)                                       | [f376e2a9…](https://whatsonchain.com/tx/f376e2a90e1b1b5d64b51214d207606aa9ecaee2d65f86d1783011e054c44dd2) |
+| Seller claims all three in one transaction and reveals the key: 11,947 sats, 53 fee    | [40f2a9a4…](https://whatsonchain.com/tx/40f2a9a40caad926020e276b77e0bafdf22d24cf8d3e54fa43af01b9248afa25) |
+
+## Security and limits
+
+- **Keys.** Users' keys stay in BSV Desktop; the web app asks it for signatures and actions only. Agent and seller
+  keys are files outside the repo, never logged.
+- **Spend policy in code.** Price, total budget, allowed services and the longest lock are checked before every
+  signature. A language model, if one is added, may narrate but never decides an amount or a signature.
+- **Key reveal proves disclosure, not quality.** The terms commit to the ciphertext's hash, so the agents get exactly
+  the data they agreed to, but nothing on chain says the data is any good.
+- **Funding is not atomic.** Each agent funds its own output. If one never funds, the seller cannot claim, and the
+  others wait until the refund height to take their shares back: they lose time, not money.
+- **Simulation data.** The mock seller sells a generated BSV/USD dataset labelled `simulation: true`.
+- **Not yet tested:** a user's refund from BSV Desktop (needed before a "Join group" button in the web app; agents
+  refund with wallet-toolbox, tested above). On `localhost`, BSV Desktop does not load the manifest's group
+  permissions and asks for each protocol separately.
 
 ## Demo
 
@@ -86,9 +157,9 @@ Video (≤ 2:30): _tbd_
 
 ## Team
 
-| Name                    | Area          |
-| ----------------------- | ------------- |
-| @NotBot-Computer        | On-chain core |
-| @efekaansalici07-design | Backend       |
-| @efeberkinaslan07-rgb   | Frontend      |
-| 4th member (tbd)        | AI agent      |
+| Name                    | Area                                    |
+| ----------------------- | --------------------------------------- |
+| @NotBot-Computer        | On-chain core                           |
+| @efekaansalici07-design | Backend                                 |
+| @Metehan02              | Frontend                                |
+| @efeberkinaslan07-rgb   | AI agent, and the FlashCrowd core (#12) |
