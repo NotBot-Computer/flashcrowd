@@ -8,7 +8,8 @@
   },
   "scripts": {
     "typecheck": "tsc -p .",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "testnet:htlc": "tsx scripts/testnet-htlc.ts"
   },
   "dependencies": {
     "@bsv/sdk": "3.2.1"
