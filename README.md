@@ -118,7 +118,8 @@ init | run | refund` (header of `packages/core/scripts/testnet-htlc.ts`).
 ## Example transactions (WhatsOnChain)
 
 Mainnet, 30 October 2026. The first six are from the HTLC check (`packages/core/scripts/testnet-htlc.ts`, start
-height 973331, fundings and claims in block 973332); details in issue #2.
+height 973331, fundings and claims in block 973332); details in issue #2. The last four are a full run through the
+server: three agents bought the 12,000-sat dataset as group `group-de38ed6a…`, all in block 973335 (#21).
 
 | Step                                                                                   | Transaction                                                                                               |
 | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -130,7 +131,10 @@ height 973331, fundings and claims in block 973332); details in issue #2.
 | Buyer refunds its share after refundHeight (group C)                                   | [99de9895…](https://whatsonchain.com/tx/99de9895b6f1e2214341f0a5055e3ff379737d05a7853f615365aa53043601d0) |
 | BSV Desktop funds an HTLC (signed with `noSend`, then sent with `sendWith`)            | [30bf87f5…](https://whatsonchain.com/tx/30bf87f56a73ebc9ec3440c96900dd7c1a18b731c7e64a5f60ddf650c54c8aba) |
 | User funds the agent from BSV Desktop                                                  | _tbd_                                                                                                     |
-| Three agents fund one group (demo)                                                     | _tbd_                                                                                                     |
+| Agent 1 funds its share, 3,000 sats (demo group)                                       | [4c643186…](https://whatsonchain.com/tx/4c6431861b686fe8d894c18dc1a9a606c298235b318088676b89daec83d5ddf0) |
+| Agent 2 funds its share, 4,000 sats (demo group)                                       | [227d3627…](https://whatsonchain.com/tx/227d3627044cf119784de324d8794b13895459dae2fed9f097e8bdc8d0e1642e) |
+| Agent 3 funds its share, 5,000 sats (demo group)                                       | [f376e2a9…](https://whatsonchain.com/tx/f376e2a90e1b1b5d64b51214d207606aa9ecaee2d65f86d1783011e054c44dd2) |
+| Seller claims all three in one transaction and reveals the key: 11,947 sats, 53 fee    | [40f2a9a4…](https://whatsonchain.com/tx/40f2a9a40caad926020e276b77e0bafdf22d24cf8d3e54fa43af01b9248afa25) |
 
 ## Security and limits
 
