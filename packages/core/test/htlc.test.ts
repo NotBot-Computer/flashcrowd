@@ -5,6 +5,8 @@
 // transaction by revealing K, and every buyer decrypts the dataset with it.
 // Group 2: two buyers fund, the seller never claims, and each buyer gets its own contribution back after the
 // refund height.
+// The claim margin: at one height, the seller's claim is refused for a group whose refundHeight is
+// CLAIM_MARGIN_BLOCKS away and goes through for one a block further.
 import {
   PrivateKey,
   Random,
@@ -21,6 +23,7 @@ import {
   abandonContribution,
   BroadcastError,
   broadcastContribution,
+  CLAIM_MARGIN_BLOCKS,
   claimContributions,
   decryptResource,
   encryptResource,
@@ -376,6 +379,8 @@ describe('group 1: three buyers, one key, one claim', () => {
 
 describe('group 2: the seller never claims, each buyer refunds after the refund height', () => {
   const GROUP = 'group-refund'
+  // One block more than the margin: the seller could still claim right after the funding.
+  const LOCK_BLOCKS = CLAIM_MARGIN_BLOCKS + 1
   const { secret, hash } = newSecret()
   let terms: HtlcTerms
   const funded: FundingContribution[] = []
@@ -390,7 +395,7 @@ describe('group 2: the seller never claims, each buyer refunds after the refund 
       ],
       hash,
       hash,
-      2,
+      LOCK_BLOCKS,
     )
     funded.push(await fund('alice', terms))
     funded.push(await fund('bob', terms))
@@ -408,7 +413,8 @@ describe('group 2: the seller never claims, each buyer refunds after the refund 
   })
 
   it('after the refund height each buyer gets back its own contribution, less the fee', async () => {
-    for (let i = 0; i < 3; i++) await chain.mineBlock()
+    // The wallet refunds once the height is above refundHeight.
+    for (let i = 0; i <= LOCK_BLOCKS; i++) await chain.mineBlock()
     for (const [who, c] of [
       ['alice', funded[0]],
       ['bob', funded[1]],
@@ -457,5 +463,23 @@ describe('group 2: the seller never claims, each buyer refunds after the refund 
     swap([buyerSig.data!, sellerSig.data!])
     tx.lockTime = terms.refundHeight - 1
     expect(inputValid(tx, index)).toBe(false)
+  })
+})
+
+describe('the claim margin', () => {
+  it('refuses a claim inside the margin and accepts one just before it', async () => {
+    const { secret, hash } = newSecret()
+    const height = await chain.services.getHeight()
+    // Claims stop at refundHeight - CLAIM_MARGIN_BLOCKS, so `height` is the first refused height for
+    // `inside` and the last accepted one for `before`.
+    const inside = await makeTerms('margin-inside', [['carol', 2_000]], hash, hash, CLAIM_MARGIN_BLOCKS)
+    const before = await makeTerms('margin-before', [['carol', 2_000]], hash, hash, CLAIM_MARGIN_BLOCKS + 1)
+    const insideFunding = await fund('carol', inside)
+    const beforeFunding = await fund('carol', before)
+    // The mock chain mines only when told to, so both claims run at `height`.
+    expect(await chain.services.getHeight()).toBe(height)
+    await expectInvalid(claimContributions(ctx.seller, inside, secret, [insideFunding]), /too late/)
+    const claim = await claimContributions(ctx.seller, before, secret, [beforeFunding])
+    expect(claim.outpoints).toEqual([`${beforeFunding.txid}.${beforeFunding.vout}`])
   })
 })
