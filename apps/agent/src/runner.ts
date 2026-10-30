@@ -15,6 +15,8 @@ export interface AgentRun {
   coordinator: Coordinator
   config: AgentConfig
   spentSats: number
+  /** Tests drive the chain from here; the default waits. */
+  sleep?: (ms: number) => Promise<void>
 }
 
 export type RunOutcome = PurchaseOutcome | { status: 'error'; reason: string }
@@ -32,6 +34,7 @@ export async function runAgents(
             ctx: run.ctx,
             coordinator: run.coordinator,
             spentSats: run.spentSats,
+            sleep: run.sleep,
             log: (step, message) => log(`[${step}] ${message}`),
           },
           run.config,

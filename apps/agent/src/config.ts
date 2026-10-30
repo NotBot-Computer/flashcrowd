@@ -70,7 +70,7 @@ export function readSettings(env: Record<string, string | undefined>, argv: stri
     throw new Error(`AGENT_MAX_CONTRIBUTIONS has ${offers.length} values for ${keyFiles.length} agents`)
   }
 
-  const serviceId = env.AGENT_SERVICE_ID ?? 'premium-data'
+  const serviceId = env.AGENT_SERVICE_ID ?? 'bsv-usd-closes'
   const allowed = list(env.AGENT_ALLOWED_SERVICES)
   return {
     network: parseNetwork(env.BSV_NETWORK),

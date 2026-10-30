@@ -1,9 +1,11 @@
 // npm run dev:agent -- --agents 3 [--check]
-// Settings come from the root .env (src/config.ts). --check reports each agent's wallet and stops; a purchase run
-// needs the coordinator client for apps/server (P4 part 5), which comes once the server has the API.
+// Settings come from the root .env (src/config.ts). --check reports each agent's wallet and stops. Without it, every
+// agent that can cover its offer buys from the coordinator at SERVER_URL at the same time, and each one's result is
+// printed with WhatsOnChain links.
 import { readSettings } from './config'
-import { checkAgents } from './runner'
-import { openAgentWallet } from './wallet'
+import { httpCoordinator } from './httpCoordinator'
+import { checkAgents, runAgents, summarize } from './runner'
+import { openAgentWallet, type AgentWallet } from './wallet'
 
 let settings
 try {
@@ -32,9 +34,35 @@ for (const r of report) {
   )
 }
 
-if (!settings.check) {
-  console.error(
-    'purchase runs need the apps/server coordinator client (P4 part 5); only --check works for now',
-  )
+if (settings.check) process.exit(0)
+const notReady = report.filter((r) => !r.ready).map((r) => r.name)
+if (notReady.length > 0) {
+  console.error(`not enough funds: ${notReady.join(', ')}. Fund them first (npm run wallet -- address/sweep)`)
   process.exit(1)
+}
+
+const open: AgentWallet[] = []
+try {
+  for (const agent of settings.agents) open.push(await openAgentWallet({ keyFile: agent.keyFile, network }))
+  const outcomes = await runAgents(
+    settings.agents.map((agent, i) => ({
+      ctx: { wallet: open[i].wallet, network },
+      coordinator: httpCoordinator(settings.serverUrl, open[i].wallet),
+      spentSats: 0,
+      config: {
+        name: agent.name,
+        policy: settings.policy,
+        serviceId: settings.serviceId,
+        resourceId: settings.resourceId,
+        maxContributionSats: agent.maxContributionSats,
+        intentTtlMs: settings.intentTtlMs,
+        pollMs: settings.pollMs,
+        matchTimeoutMs: settings.matchTimeoutMs,
+      },
+    })),
+  )
+  console.log('')
+  outcomes.forEach((o, i) => console.log(summarize(settings.agents[i].name, o, network)))
+} finally {
+  for (const w of open) await w.close()
 }

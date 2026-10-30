@@ -8,9 +8,9 @@ agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PL
   signed, and the funding is broadcast only with a valid refund signature from the seller. Once funded, the agent
   waits for the claim or the refund height; it never walks away from locked money. An LLM may narrate the steps but
   never decides an amount or a signature.
-- `src/coordinator.ts`: what the agent needs from the server, one method per endpoint of the plan's API table
-  (`GET /api/intents/:id` is added so the agent finds its group). To agree with P2; the HTTP client with `AuthFetch`
-  (BRC-103) comes once the server has the endpoints.
+- `src/coordinator.ts`, `src/httpCoordinator.ts`: the server's API (apps/server/README.md, #13), one method per
+  endpoint. Reads use plain fetch; every POST is a BRC-103 request signed by the agent's wallet (`AuthFetch`). After a
+  refund the agent reports it (`POST /api/groups/:id/refunds`), retrying while the server answers 409.
 - `src/wallet.ts`: `openAgentWallet({ keyFile, network })`, a wallet-toolbox wallet from a key file outside the repo,
   SQLite storage next to the key file, Arcade (`ARCADE_URL`) as the broadcaster.
 - `npm run wallet:init -w @agentswap/agent -- ~/.agentswap/agent-1.key`: writes a fresh key (mode 600), refuses paths
@@ -23,9 +23,9 @@ agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PL
 
 - `src/config.ts`, `src/runner.ts`, `src/index.ts`: the command line. `npm run dev:agent -- --agents 3 --check` reads
   the agent settings from the root `.env` (see `.env.example`: key files, offers, spend policy; whole sats only) and
-  prints each agent's identity, deposit address and whether its balance covers its offer plus fees. Without
-  `--check` it will run the agents together (`runAgents`) once the server client exists; until then it says so and
-  stops.
+  prints each agent's identity, deposit address and whether its balance covers its offer plus fees. Without `--check`
+  every agent buys from the server at `SERVER_URL` at the same time (`runAgents`), and each result is printed with
+  WhatsOnChain links; it stops first if an agent lacks funds.
 
 Tests: `npm test -w @agentswap/agent`, on wallet-toolbox's mock chain with a test-only in-process coordinator and mock
 seller (`test/helpers/localCoordinator.ts`, not the server): three agents buy a 12,000-sat dataset and decrypt it; an
@@ -43,5 +43,7 @@ npm run wallet -w @agentswap/agent -- sweep ~/.agentswap/agent-1.key <txid>.<vou
 
 Then `npm run dev:agent -- --agents 3 --check` until every agent is ready.
 
-Next: the `AuthFetch` coordinator against apps/server (purchase runs), feed events with WoC links, optional LLM
-narration.
+Against the real server: a test that starts apps/server (as its own tests do) and runs three agents through it over
+HTTP and BRC-103, plus a refund run, passes on a local merge with #13. It joins this package once #13 is merged.
+
+Next: the testnet run (funded agents, the server on testnet), optional LLM narration.

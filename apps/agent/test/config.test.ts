@@ -21,7 +21,7 @@ describe('readSettings', () => {
     expect(s.policy).toEqual({
       maxPerPurchaseSats: 6_000,
       maxTotalSats: 20_000,
-      allowedServiceIds: ['premium-data'],
+      allowedServiceIds: ['bsv-usd-closes'],
       requireMatchingResource: true,
       maxLockBlocks: 30,
     })
