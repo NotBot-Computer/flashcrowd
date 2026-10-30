@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Dashboard } from './Dashboard'
+import { FundAgent } from './FundAgent'
 import { SourceBar } from './SourceBar'
 import { useDashboard } from './useDashboard'
 import { connectWallet, type Session } from './wallet'
@@ -63,6 +64,10 @@ export function App() {
         {page === 'dashboard' && (
           <>
             <SourceBar source={source} />
+            <FundAgent
+              session={session}
+              serverNetwork={source.kind === 'live' ? source.health?.network : undefined}
+            />
             {data && (
               <Dashboard
                 data={data}
