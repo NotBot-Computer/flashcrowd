@@ -1,20 +1,49 @@
 # apps/agent (P4)
 
-The AI agent: its own BRC-100 wallet, a hard spend policy, and tools to find offers, swap and pay per call.
+FlashCrowd agents: each has its own BRC-100 wallet, a hard spend policy, and buys a dataset together with other
+agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PLAN.md](../../docs/FLASHCROWD_PLAN.md).
 
-Run `npm run dev:agent` from the repo root. It reads the root `.env`.
+- `src/flow.ts`: `runPurchase`, one purchase, step by step: search → intent → match → evaluate → authorize → fund →
+  settle → decrypt, or refund. Deterministic: `verifyTerms` and `checkSpend` / `assertSpend` decide before anything is
+  signed, and the funding is broadcast only with a valid refund signature from the seller. Once funded, the agent
+  waits for the claim or the refund height; it never walks away from locked money. An LLM may narrate the steps but
+  never decides an amount or a signature.
+- `src/coordinator.ts`, `src/httpCoordinator.ts`: the server's API (apps/server/README.md, #13), one method per
+  endpoint. Reads use plain fetch; every POST is a BRC-103 request signed by the agent's wallet (`AuthFetch`). After a
+  refund the agent reports it (`POST /api/groups/:id/refunds`), retrying while the server answers 409.
+- `src/wallet.ts`: `openAgentWallet({ keyFile, network })`, a wallet-toolbox wallet from a key file outside the repo,
+  SQLite storage next to the key file, Arcade (`ARCADE_URL`) as the broadcaster.
+- `npm run wallet:init -w @agentswap/agent -- ~/.agentswap/agent-1.key`: writes a fresh key (mode 600), refuses paths
+  inside the repo and existing files, prints the identity key.
+- `src/funding.ts` and `npm run wallet -w @agentswap/agent -- address|sweep|balance <key file> [<txid>.<vout> …]`:
+  test coins go to a deposit address (P2PKH of a key derived from the root key under `[1, 'flashcrowd deposit']`, not
+  the identity key); `sweep` takes mined deposits into the wallet and broadcasts right away, printing WoC links.
+  Not wallet-toolbox's `fundWalletFromP2PKHOutpoints`: it leaves the broadcast to the wallet's Monitor, so without one
+  the sweep shows in the balance but never reaches the network.
 
-To build during the event (issue #5):
+- `src/config.ts`, `src/runner.ts`, `src/index.ts`: the command line. `npm run dev:agent -- --agents 3 --check` reads
+  the agent settings from the root `.env` (see `.env.example`: key files, offers, spend policy; whole sats only) and
+  prints each agent's identity, deposit address and whether its balance covers its offer plus fees. Without `--check`
+  every agent buys from the server at `SERVER_URL` at the same time (`runAgents`), and each result is printed with
+  WhatsOnChain links; it stops first if an agent lacks funds.
 
-- **Wallet:** a server-side wallet from the agent's own root key (`@bsv/simple/server` or `@bsv/wallet-toolbox`, at
-  the versions pinned in AGENTS.md). The key file lives outside the repo (`AGENT_KEY_FILE`). The user funds it from
-  BSV Desktop on the web app's Agent page.
-- **Spend policy:** `SpendPolicy` from packages/core, checked in code before every signature (per-transaction cap,
-  per-task cap, host allowlist). The LLM cannot override it.
-- **Tools:** `get_balance`, `find_offers` (`GET /api/quote`), `swap` (core `fillOffer`), `call_paid_api`
-  (`create402Fetch` from `@bsv/402-pay/client`), `report` (`POST /api/events`).
-- **LLM loop:** the Claude API Tool Runner, `client.beta.messages.toolRunner()` with tools defined through
-  `betaZodTool` from `@anthropic-ai/sdk/helpers/beta/zod`. Model `claude-opus-5-5` with adaptive thinking; set
-  `output_config.effort` explicitly (its default is `medium`). Turn on server-side refusal fallbacks
-  (`fallbacks: "default"` with the `server-side-fallback-2026-07-01` beta).
-- **First goal (M1):** the agent pays the 402 service in sats, which gives the first agent-payment WoC link.
+Tests: `npm test -w @agentswap/agent`, on wallet-toolbox's mock chain with a test-only in-process coordinator and mock
+seller (`test/helpers/localCoordinator.ts`, not the server): three agents buy a 12,000-sat dataset and decrypt it; an
+agent whose policy rejects the terms signs nothing; the budget caps the offer; with no claim, two agents refund after
+the refund height; deposits are swept, an output to another address, a second sweep and an unmined deposit are
+refused. No testnet transaction yet.
+
+Funding an agent on testnet:
+
+```bash
+npm run wallet:init -w @agentswap/agent -- ~/.agentswap/agent-1.key
+npm run wallet -w @agentswap/agent -- address ~/.agentswap/agent-1.key   # send test coins here
+npm run wallet -w @agentswap/agent -- sweep ~/.agentswap/agent-1.key <txid>.<vout>   # after one confirmation
+```
+
+Then `npm run dev:agent -- --agents 3 --check` until every agent is ready.
+
+Against the real server: a test that starts apps/server (as its own tests do) and runs three agents through it over
+HTTP and BRC-103, plus a refund run, passes on a local merge with #13. It joins this package once #13 is merged.
+
+Next: the testnet run (funded agents, the server on testnet), optional LLM narration.

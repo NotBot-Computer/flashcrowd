@@ -14,7 +14,7 @@
   "scripts": {
     "dev:server": "npm run dev -w @agentswap/server",
     "dev:web": "npm run dev -w @agentswap/web",
-    "dev:agent": "npm run dev -w @agentswap/agent",
+    "dev:agent": "npm run dev -w @agentswap/agent --",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
