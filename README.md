@@ -130,7 +130,7 @@ server: three agents bought the 12,000-sat dataset as group `group-de38ed6a…`,
 | Seller's claim after the refused refund (group B)                                      | [ab6cf9da…](https://whatsonchain.com/tx/ab6cf9da48402af97a9ccd10d826904b361ad78866e47892702963f58e8ec505) |
 | Buyer refunds its share after refundHeight (group C)                                   | [99de9895…](https://whatsonchain.com/tx/99de9895b6f1e2214341f0a5055e3ff379737d05a7853f615365aa53043601d0) |
 | BSV Desktop funds an HTLC (signed with `noSend`, then sent with `sendWith`)            | [30bf87f5…](https://whatsonchain.com/tx/30bf87f56a73ebc9ec3440c96900dd7c1a18b731c7e64a5f60ddf650c54c8aba) |
-| User funds the agent from BSV Desktop                                                  | _tbd_                                                                                                     |
+| User funds agent 1 from BSV Desktop (BRC-29, 2,000 sats); the agent takes it in        | [87f3eb85…](https://whatsonchain.com/tx/87f3eb85ff40d37fb92cb1020a04babf996c1b0cbcdbdf0514727d80c650dca7) |
 | Agent 1 funds its share, 3,000 sats (demo group)                                       | [4c643186…](https://whatsonchain.com/tx/4c6431861b686fe8d894c18dc1a9a606c298235b318088676b89daec83d5ddf0) |
 | Agent 2 funds its share, 4,000 sats (demo group)                                       | [227d3627…](https://whatsonchain.com/tx/227d3627044cf119784de324d8794b13895459dae2fed9f097e8bdc8d0e1642e) |
 | Agent 3 funds its share, 5,000 sats (demo group)                                       | [f376e2a9…](https://whatsonchain.com/tx/f376e2a90e1b1b5d64b51214d207606aa9ecaee2d65f86d1783011e054c44dd2) |
