@@ -21,6 +21,12 @@ agents through the coordinator (apps/server). The plan is in [docs/FLASHCROWD_PL
   Not wallet-toolbox's `fundWalletFromP2PKHOutpoints`: it leaves the broadcast to the wallet's Monitor, so without one
   the sweep shows in the balance but never reaches the network.
 
+- `src/config.ts`, `src/runner.ts`, `src/index.ts`: the command line. `npm run dev:agent -- --agents 3 --check` reads
+  the agent settings from the root `.env` (see `.env.example`: key files, offers, spend policy; whole sats only) and
+  prints each agent's identity, deposit address and whether its balance covers its offer plus fees. Without
+  `--check` it will run the agents together (`runAgents`) once the server client exists; until then it says so and
+  stops.
+
 Tests: `npm test -w @agentswap/agent`, on wallet-toolbox's mock chain with a test-only in-process coordinator and mock
 seller (`test/helpers/localCoordinator.ts`, not the server): three agents buy a 12,000-sat dataset and decrypt it; an
 agent whose policy rejects the terms signs nothing; the budget caps the offer; with no claim, two agents refund after
@@ -35,5 +41,7 @@ npm run wallet -w @agentswap/agent -- address ~/.agentswap/agent-1.key   # send 
 npm run wallet -w @agentswap/agent -- sweep ~/.agentswap/agent-1.key <txid>.<vout>   # after one confirmation
 ```
 
-Next: the `AuthFetch` coordinator against apps/server, `npm run dev:agent -- --agents 3`, feed events with WoC links,
-optional LLM narration.
+Then `npm run dev:agent -- --agents 3 --check` until every agent is ready.
+
+Next: the `AuthFetch` coordinator against apps/server (purchase runs), feed events with WoC links, optional LLM
+narration.
