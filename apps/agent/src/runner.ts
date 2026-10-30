@@ -6,6 +6,7 @@ import type { Coordinator } from './coordinator'
 import { depositAddress } from './funding'
 import { readLedger, recordInLedger, spentSats } from './ledger'
 import { runPurchase, type AgentConfig, type PurchaseOutcome } from './flow'
+import type { Narrator } from './narrate'
 import { readKeyFile, type AgentWallet } from './wallet'
 
 /** Room for the funding transaction's fee on top of the share. */
@@ -25,10 +26,14 @@ export interface AgentRun {
 
 export type RunOutcome = PurchaseOutcome | { status: 'error'; reason: string }
 
-/** Runs every agent's purchase at the same time; one agent's failure does not stop the others. */
+/**
+ * Runs every agent's purchase at the same time; one agent's failure does not stop the others. A narrator, if given,
+ * sees each log line and prints its sentences before this returns; it never changes what the agents do.
+ */
 export async function runAgents(
   runs: AgentRun[],
   log: (line: string) => void = console.log,
+  narrator?: Narrator,
 ): Promise<RunOutcome[]> {
   const settled = await Promise.allSettled(
     runs.map(async (run) => {
@@ -39,7 +44,10 @@ export async function runAgents(
           coordinator: run.coordinator,
           spentSats: ledger === undefined ? run.spentSats : spentSats(readLedger(ledger)),
           sleep: run.sleep,
-          log: (step, message) => log(`[${step}] ${message}`),
+          log: (step, message) => {
+            log(`[${step}] ${message}`)
+            narrator?.step(step, message)
+          },
           onFunded: (f) => {
             if (ledger !== undefined) recordInLedger(ledger, { ...f, status: 'funded' })
           },
@@ -63,6 +71,7 @@ export async function runAgents(
       return outcome
     }),
   )
+  await narrator?.flush()
   return settled.map((s) =>
     s.status === 'fulfilled'
       ? s.value
