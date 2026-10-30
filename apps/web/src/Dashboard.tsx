@@ -8,9 +8,13 @@ import {
   groupStatus,
   maxBuyers,
   participantStatus,
+  serviceTitle,
+  shortGroupId,
   shortKey,
+  timeAgo,
   type FeedItem,
   type GroupView,
+  type Tone,
 } from './model'
 
 /** The FlashCrowd dashboard: services, purchase groups and the live feed. Reading needs no wallet. */
@@ -24,7 +28,7 @@ export function Dashboard({
   simulationReason?: string
   onRetry?: () => void
 }) {
-  const titleOf = (serviceId: string) => data.services.find((s) => s.id === serviceId)?.title ?? serviceId
+  const service = (id: string) => data.services.find((s) => s.id === id)
   return (
     <div className="dashboard">
       {data.simulation && (
@@ -44,7 +48,7 @@ export function Dashboard({
       <div className="dashboard-grid">
         <div className="dashboard-main">
           <section className="panel">
-            <h2>Services</h2>
+            <h2 className="label">Services</h2>
             {data.services.length === 0 ? (
               <p className="muted">No services yet.</p>
             ) : (
@@ -56,16 +60,26 @@ export function Dashboard({
             )}
           </section>
           <section>
-            <h2 className="section-title">Purchase groups</h2>
+            <h2 className="label section-label">
+              Purchase groups <span className="count">{data.groups.length}</span>
+            </h2>
             {data.groups.length === 0 ? (
               <p className="panel muted empty">
                 No purchase groups yet. A group appears when agents post intents for a service.
               </p>
             ) : (
               <div className="groups">
-                {data.groups.map((g) => (
-                  <GroupCard key={g.id} group={g} title={titleOf(g.serviceId)} simulation={data.simulation} />
-                ))}
+                {data.groups.map((g) => {
+                  const s = service(g.serviceId)
+                  return (
+                    <GroupCard
+                      key={g.id}
+                      group={g}
+                      title={s ? serviceTitle(s.title, s.simulation) : g.serviceId}
+                      simulation={data.simulation}
+                    />
+                  )
+                })}
               </div>
             )}
           </section>
@@ -76,14 +90,25 @@ export function Dashboard({
   )
 }
 
+export function StatusChip({ label, tone }: { label: string; tone: Tone }) {
+  return (
+    <span className="chip">
+      <span className={`dot tone-${tone}`} aria-hidden="true" />
+      {label}
+    </span>
+  )
+}
+
 function ServiceRow({ service }: { service: ServiceOffer }) {
   return (
     <li className="service">
-      <div>
-        <strong>{service.title}</strong>
-        {service.simulation && <span className="badge badge-simulation">simulation</span>}
+      <div className="service-main">
+        <div className="service-title">
+          <strong>{serviceTitle(service.title, service.simulation)}</strong>
+          {service.simulation && <StatusChip label="simulation" tone="warning" />}
+        </div>
         <span className="muted">
-          <code>{service.resourceId}</code> · seller {shortKey(service.sellerIdentityKey)}
+          <code>{service.resourceId}</code> · seller <code>{shortKey(service.sellerIdentityKey)}</code>
         </span>
       </div>
       <div className="service-figures">
@@ -96,35 +121,39 @@ function ServiceRow({ service }: { service: ServiceOffer }) {
   )
 }
 
+const TRANSACTION_LABEL = { funding: 'Funding', claim: 'Claim', refund: 'Refund' }
+
 export function GroupCard({ group, title, simulation }: { group: GroupView; title: string; simulation: boolean }) {
   const status = groupStatus(group.status)
   const progress = fundingProgress(group)
+  const buyers = group.participants.length
   return (
     <article className="panel group">
-      <header className="group-head">
-        <div>
-          <strong>{title}</strong>
-          <span className="muted">
-            {group.id} · {group.participants.length} {group.participants.length === 1 ? 'buyer' : 'buyers'}
+      <div className="group-top">
+        <code className="group-id" title={group.id}>
+          {shortGroupId(group.id)}
+        </code>
+        <StatusChip label={status.label} tone={status.tone} />
+      </div>
+      <strong className="group-title">{title}</strong>
+
+      <div>
+        <div className="progress-label">
+          <span>Funded</span>
+          <span>
+            {formatSats(fundedSats(group))} of {formatSats(group.priceSats)} · {buyers}{' '}
+            {buyers === 1 ? 'buyer' : 'buyers'}
           </span>
         </div>
-        <span className={`badge tone-${status.tone}`}>{status.label}</span>
-      </header>
-
-      <div className="progress-label">
-        <span>Funded</span>
-        <span>
-          {formatSats(fundedSats(group))} of {formatSats(group.priceSats)}
-        </span>
-      </div>
-      <div
-        className="progress"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(progress * 100)}
-      >
-        <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
+        <div
+          className="progress"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress * 100)}
+        >
+          <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
+        </div>
       </div>
 
       <table className="participants">
@@ -149,15 +178,15 @@ export function GroupCard({ group, title, simulation }: { group: GroupView; titl
       </table>
 
       <div className="transactions">
-        <span className="transactions-title">Transactions</span>
+        <span className="label">Transactions</span>
         {group.transactions.length > 0 ? (
           <ul>
             {group.transactions.map((t) => (
               <li key={t.txid}>
-                <span>{t.kind}</span>
-                {t.identityKey && <code>{shortKey(t.identityKey)}</code>}
-                <a href={t.wocUrl} target="_blank" rel="noreferrer">
-                  {t.txid.slice(0, 12)}…
+                <span>{TRANSACTION_LABEL[t.kind]}</span>
+                <code className="muted">{t.identityKey ? shortKey(t.identityKey) : 'seller'}</code>
+                <a href={t.wocUrl} target="_blank" rel="noreferrer" title={t.txid}>
+                  <code>{t.txid.slice(0, 12)}…</code>
                 </a>
               </li>
             ))}
@@ -170,27 +199,35 @@ export function GroupCard({ group, title, simulation }: { group: GroupView; titl
   )
 }
 
-export function FeedPanel({ items }: { items: FeedItem[] }) {
+export function FeedPanel({ items, now = Date.now() }: { items: FeedItem[]; now?: number }) {
   const newestFirst = [...items].sort((a, b) => b.id - a.id)
   return (
     <aside className="panel feed">
-      <h2>Live feed</h2>
+      <h2 className="label">Live feed</h2>
       {newestFirst.length === 0 ? (
         <p className="muted">No events yet.</p>
       ) : (
         <ol>
           {newestFirst.map((e) => (
             <li key={e.id}>
-              <div className="feed-meta">
-                <span className={`feed-type feed-${e.type}`}>{e.type}</span>
-                <time dateTime={e.at}>{formatTime(e.at)}</time>
+              <span className={`dot feed-${e.type}`} aria-hidden="true" />
+              <div className="feed-body">
+                <span className="feed-message">{e.message}</span>
+                <span className="feed-meta">
+                  {e.type} ·{' '}
+                  <time dateTime={e.at} title={formatTime(e.at)}>
+                    {timeAgo(e.at, now)}
+                  </time>
+                  {e.wocUrl && (
+                    <>
+                      {' · '}
+                      <a href={e.wocUrl} target="_blank" rel="noreferrer">
+                        WhatsOnChain
+                      </a>
+                    </>
+                  )}
+                </span>
               </div>
-              <span>{e.message}</span>
-              {e.wocUrl && (
-                <a href={e.wocUrl} target="_blank" rel="noreferrer">
-                  WhatsOnChain
-                </a>
-              )}
             </li>
           ))}
         </ol>

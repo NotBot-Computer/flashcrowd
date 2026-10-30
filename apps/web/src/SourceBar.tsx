@@ -1,3 +1,4 @@
+import { StatusChip } from './Dashboard'
 import type { Source } from './useDashboard'
 
 const FEED_LABEL = { connecting: 'Feed connecting…', open: 'Feed connected', reconnecting: 'Feed reconnecting…' }
@@ -8,7 +9,7 @@ export function SourceBar({ source }: { source: Source }) {
   if (source.kind === 'simulation') return null
   return (
     <p className="source-bar">
-      <span className="badge tone-success">Live</span>
+      <StatusChip label="Live" tone="success" />
       {source.health && (
         <span className="muted">
           {source.health.network} · block {source.health.height.toLocaleString('en')}

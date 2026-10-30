@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Dashboard } from './Dashboard'
+import { Dashboard, StatusChip } from './Dashboard'
 import { FundAgent } from './FundAgent'
 import { NetworkBanner } from './NetworkBanner'
 import { SourceBar } from './SourceBar'
@@ -59,7 +59,7 @@ export function App() {
     <>
       <header className="app-header">
         <div className="brand">
-          <h1>AgentSwap</h1>
+          <h1>FlashCrowd</h1>
           <nav>
             <a href="#/" aria-current={page === 'dashboard' ? 'page' : undefined}>
               Dashboard
@@ -70,8 +70,9 @@ export function App() {
           </nav>
         </div>
         {session ? (
-          <span className={`badge badge-${session.network}`} title={session.identityKey}>
-            {session.network} · {session.identityKey.slice(0, 10)}…
+          <span className="wallet" title={session.identityKey}>
+            <StatusChip label={session.network} tone={session.network === 'mainnet' ? 'success' : 'warning'} />
+            <code>{session.identityKey.slice(0, 10)}…</code>
           </span>
         ) : (
           <button onClick={onConnect} disabled={connecting}>

@@ -1,6 +1,6 @@
 {
-  "name": "AgentSwap",
-  "short_name": "AgentSwap",
+  "name": "FlashCrowd",
+  "short_name": "FlashCrowd",
   "metanet": {
     "groupPermissions": {
       "spendingAuthorization": { "amount": 50000, "description": "Monthly allowance for FlashCrowd group purchases and agent funding" },

@@ -2,7 +2,17 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { Dashboard, FeedPanel, GroupCard } from '../src/Dashboard'
 import { mockData } from '../src/mock'
-import { fundedSats, fundingProgress, groupStatus, maxBuyers, shortKey, type GroupView } from '../src/model'
+import {
+  fundedSats,
+  fundingProgress,
+  groupStatus,
+  maxBuyers,
+  serviceTitle,
+  shortGroupId,
+  shortKey,
+  timeAgo,
+  type GroupView,
+} from '../src/model'
 
 const HEX64 = /[0-9a-f]{64}/i
 const NOW = Date.parse('2026-10-31T10:00:00Z')
@@ -34,6 +44,25 @@ describe('model', () => {
   it('shortens keys but leaves short strings alone', () => {
     expect(shortKey('02' + 'ab'.repeat(32))).toBe('02ababab…abab')
     expect(shortKey('group-a1')).toBe('group-a1')
+  })
+
+  it("shortens the server's group ids to their first block", () => {
+    expect(shortGroupId('group-de38ed6a-430d-4496-9930-83fb13836f1f')).toBe('group-de38ed6a…')
+    expect(shortGroupId('group-a1')).toBe('group-a1')
+  })
+
+  it('drops a "(simulation)" suffix only from simulation services', () => {
+    expect(serviceTitle('BSV/USD daily closes (simulation)', true)).toBe('BSV/USD daily closes')
+    expect(serviceTitle('BSV/USD daily closes (simulation)', false)).toBe('BSV/USD daily closes (simulation)')
+  })
+
+  it('dates feed events relative to now', () => {
+    const at = (secondsAgo: number) => new Date(NOW - secondsAgo * 1000).toISOString()
+    expect(timeAgo(at(10), NOW)).toBe('just now')
+    expect(timeAgo(at(4 * 60), NOW)).toBe('4 min ago')
+    expect(timeAgo(at(3 * 3600), NOW)).toBe('3 h ago')
+    expect(timeAgo(at(2 * 86400), NOW)).toBe('2 d ago')
+    expect(timeAgo(at(-30), NOW)).toBe('just now')
   })
 })
 
@@ -97,6 +126,13 @@ describe('GroupCard', () => {
     const html = renderToStaticMarkup(<GroupCard group={group} title="Dataset" simulation={false} />)
     expect(html).toContain(`href="${wocUrl}"`)
     expect(html).not.toContain('None yet')
+  })
+
+  it('shows a long group id shortened, with the full id on hover', () => {
+    const id = 'group-de38ed6a-430d-4496-9930-83fb13836f1f'
+    const html = renderToStaticMarkup(<GroupCard group={groupWith({ id })} title="Dataset" simulation={false} />)
+    expect(html).toContain('group-de38ed6a…')
+    expect(html).toContain(`title="${id}"`)
   })
 })
 
