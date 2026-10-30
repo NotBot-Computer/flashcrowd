@@ -2,7 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM"],
-    "types": []
+    "types": [],
+    // Like the @bsv/sdk alias in vitest.config.ts: wallet-toolbox (CommonJS) gets the SDK's CJS declarations, so ours
+    // must come from the same build, or its classes exist twice and do not match.
+    "paths": {
+      "@bsv/sdk": ["../../node_modules/@bsv/sdk/dist/cjs/mod.d.ts"]
+    }
   },
   "include": ["src", "test"]
 }

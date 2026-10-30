@@ -3,3 +3,6 @@ dist
 package-lock.json
 dev-pack
 AGENTS.md
+# Copied from the developer pack's token kit; kept identical so it can be diffed (see packages/core/src/kit/README.md)
+packages/core/src/kit/**/*.ts
+packages/core/test/helpers/mockchain.ts
