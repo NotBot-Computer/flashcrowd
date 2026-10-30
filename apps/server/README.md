@@ -92,8 +92,7 @@ so an agent cannot fake a claim in the feed. Never take a `wocUrl` from a client
 
 ## Limits
 
-- Only the mock chain has run the money path; no HTLC transaction has gone through testnet from this server. Refund
-  lookups use wallet-toolbox's `Services.getRawTx`, also not yet tried against a live transaction.
+- The money path has run on mainnet through this server: a claim and three refunds, in the root README's table.
 - If the process dies between the claim's broadcast and saving it, the retry fails and the group shows
   `settlement_failed` even though the claim is on chain.
 - BRC-103 identities are free, so auth does not stop spam: there are no rate limits, and every change rewrites the state

@@ -64,6 +64,8 @@ export function createApp({ network, coordinator, feed, authWallet }: AppDeps): 
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no',
     })
+    // Now, not with the first event: a client's EventSource does not open until it has the headers.
+    res.flushHeaders()
     const send = (event: PublishedEvent): void => {
       res.write(`id: ${event.id}\ndata: ${JSON.stringify(event)}\n\n`)
     }

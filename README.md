@@ -105,12 +105,19 @@ In VS Code: **Terminal → Run Task → dev: all**. Checks: `npm run typecheck` 
 
 ## Run the demo
 
+Our runs were on mainnet (`BSV_NETWORK=mainnet` in `.env`), so they spend real sats. `.env.example` starts on testnet, so
+nobody spends money by accident.
+
 1. Start the server and the web app, open http://localhost:5173 and connect BSV Desktop.
 2. `npm run dev:agent -- --agents 3`: three agents post intents, form a group, fund their shares and wait.
 3. The seller claims as soon as the group is fully funded. Each agent prints its share, the decrypted dataset's size and WoC links; the
    dashboard shows the group, the funding bar and the links.
-4. Refund path: restart the server with `SELLER_NO_CLAIM=true`, run the agents again and wait `SELLER_LOCK_BLOCKS`
-   blocks (about 10 minutes each). The agents refund themselves.
+4. Refund path: restart the server with `SELLER_NO_CLAIM=true`, run the agents again and wait `SELLER_LOCK_BLOCKS` + 1
+   blocks (about 10 minutes each): the wallet accepts a refund only once the height is above the refund height. The
+   agents refund themselves. Set the flag back to `false` afterwards, or the seller keeps not claiming.
+
+If the agents run on another machine, open a tunnel to the server and use its address as their `SERVER_URL`:
+`cloudflared tunnel --url http://localhost:8787`. A new tunnel gets a new address.
 
 On-chain check of the HTLC alone, without the server: `BSV_NETWORK=mainnet npm run testnet:htlc -w @agentswap/core --
 init | run | refund` (header of `packages/core/scripts/testnet-htlc.ts`).
