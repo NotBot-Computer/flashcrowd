@@ -8,7 +8,7 @@ body {
   margin: 0;
 }
 
-header {
+.app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -23,9 +23,42 @@ h1 {
 }
 
 main {
-  max-width: 960px;
+  max-width: 1160px;
   margin: 0 auto;
   padding: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+}
+
+nav a {
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: #3f434a;
+  text-decoration: none;
+  font-size: 15px;
+}
+
+nav a:hover {
+  background: #f1f1f3;
+}
+
+nav a[aria-current='page'] {
+  background: #ececef;
+  color: #16181d;
+  font-weight: 600;
+}
+
+a {
+  color: #1d4ed8;
 }
 
 button {
@@ -146,8 +179,274 @@ button.secondary {
   overflow-wrap: anywhere;
 }
 
+/* Dashboard */
+
+.notice {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border: 1px solid #f0d58a;
+  border-radius: 10px;
+  background: #fffaeb;
+  color: #5c4813;
+  font-size: 14px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+.dashboard-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.dashboard-main .panel {
+  margin-top: 0;
+}
+
+.section-title {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.services {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.service {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid #e4e4e7;
+}
+
+.service > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.service .badge {
+  align-self: flex-start;
+}
+
+.service-figures {
+  align-items: flex-end;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.badge-simulation {
+  font-size: 12px;
+  padding: 2px 8px;
+  background: #fffaeb;
+  color: #5c4813;
+  border: 1px solid #f0d58a;
+}
+
+.groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.group {
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.group-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.group-head .badge {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.tone-neutral {
+  background: #ececef;
+  color: #3f434a;
+}
+
+.tone-progress {
+  background: #e0e9fb;
+  color: #1d4ed8;
+}
+
+.tone-success {
+  background: #dcf5e2;
+  color: #146c2e;
+}
+
+.tone-warning {
+  background: #fdf0d5;
+  color: #8a5300;
+}
+
+.tone-danger {
+  background: #fde4e1;
+  color: #b42318;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #6b6f76;
+}
+
+.progress {
+  height: 8px;
+  border-radius: 999px;
+  background: #ececef;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #16181d;
+}
+
+.participants {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.participants th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 12px;
+  color: #6b6f76;
+  padding: 0 0 6px;
+}
+
+.participants td {
+  padding: 6px 0;
+  border-top: 1px solid #f1f1f3;
+}
+
+.transactions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #e4e4e7;
+}
+
+.transactions-title {
+  font-size: 12px;
+  color: #6b6f76;
+}
+
+.transactions ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.transactions li {
+  display: flex;
+  gap: 8px;
+}
+
+.feed {
+  margin-top: 0;
+  position: sticky;
+  top: 20px;
+}
+
+.feed ol {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.feed li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-top: 1px solid #e4e4e7;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.feed-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #6b6f76;
+}
+
+.feed-type {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.feed-claim {
+  color: #146c2e;
+}
+
+.feed-refund {
+  color: #8a5300;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feed {
+    position: static;
+  }
+}
+
 @media (max-width: 600px) {
-  .check {
+  .app-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .brand {
+    gap: 12px;
+  }
+
+  main {
+    padding: 16px;
+  }
+
+  .check,
+  .service {
     flex-direction: column;
+  }
+
+  .service-figures {
+    align-items: flex-start;
+    text-align: left;
   }
 }
