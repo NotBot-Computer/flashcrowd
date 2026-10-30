@@ -531,6 +531,13 @@ describe('the live parts', () => {
     expect(text).toMatch(/^id: 1\ndata: \{/)
   })
 
+  it('opens the stream before there is any event', async () => {
+    const server = await startServer()
+    const res = await fetch(`${server.base}/api/feed`, { signal: AbortSignal.timeout(5_000) })
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+    await res.body!.cancel()
+  })
+
   it('a very small intent does not block a service: the others match and it stays open', async () => {
     const server = await startServer()
     const members = [await newAgent(), await newAgent(), await newAgent()]
