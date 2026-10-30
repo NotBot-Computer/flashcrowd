@@ -61,3 +61,93 @@ button:disabled {
 [role='alert'] {
   color: #b42318;
 }
+
+button.secondary {
+  background: #fff;
+  color: #16181d;
+  border-color: #d4d4d8;
+}
+
+.panel {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.panel h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.muted {
+  color: #6b6f76;
+  font-size: 14px;
+}
+
+.checks {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.check {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid #e4e4e7;
+}
+
+.check > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.check code {
+  font-size: 13px;
+  color: #3f434a;
+  overflow-wrap: anywhere;
+}
+
+.check-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.badge-pass {
+  background: #dcf5e2;
+  color: #146c2e;
+}
+
+.badge-fail {
+  background: #fde4e1;
+  color: #b42318;
+}
+
+.result-ok {
+  font-size: 14px;
+  color: #146c2e;
+}
+
+.result-fail {
+  font-size: 14px;
+  color: #b42318;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .check {
+    flex-direction: column;
+  }
+}

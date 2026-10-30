@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { connectWallet, type Session } from './wallet'
+import { WalletChecks } from './WalletChecks'
 
 // Scaffold only: P3 builds the Swap, Sell and Agent pages during the event (apps/web/README.md, issue #4).
 export function App() {
@@ -36,6 +37,7 @@ export function App() {
       <main>
         {error && <p role="alert">{error}</p>}
         <p>Swap-and-pay rails for AI agents on BSV.</p>
+        {session && <WalletChecks ctx={session} />}
       </main>
     </>
   )
