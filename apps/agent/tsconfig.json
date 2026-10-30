@@ -2,11 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM"],
-    "types": ["node"],
-    // As in packages/core: wallet-toolbox gets the SDK's CJS declarations, so ours must come from the same build.
-    "paths": {
-      "@bsv/sdk": ["../../node_modules/@bsv/sdk/dist/cjs/mod.d.ts"]
-    }
+    "types": ["node"]
   },
   "include": ["src", "test"]
 }
