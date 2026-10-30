@@ -1,5 +1,10 @@
 # Team plan: AgentSwap (BSV Association track)
 
+> **Superseded.** This is the plan for our first idea, AgentSwap. On 30 October the team switched to FlashCrowd:
+> see the [README](../README.md), [FLASHCROWD_TASK.md](FLASHCROWD_TASK.md) and
+> [FLASHCROWD_PLAN.md](FLASHCROWD_PLAN.md). The folders, owners and issues below still hold; the product work does
+> not.
+
 > **Hackathon rule** (FAQ): "Can I start building before the event? No. Build during the hackathon."
 > Libraries and starter templates are allowed, but the core build has to happen during the event. This repo
 > therefore holds only the scaffold, this plan and the task split. Product code starts **Fri 30 Oct, 09:00**.
@@ -31,7 +36,7 @@ If the team picks another idea, the split below still holds: it follows the laye
 |                 | **P1: On-chain core**                                                     | **P2: Backend**                                               | **P3: Frontend**                                               | **P4: AI agent**                                                    |
 | --------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
 | Folder          | `packages/core`                                                           | `apps/server`                                                 | `apps/web`                                                     | `apps/agent`                                                        |
-| Owner (GitHub)  | @NotBot-Computer                                                          | @efekaansalici07-design                                       | @efeberkinaslan07-rgb                                          | 4th member (not invited yet)                                        |
+| Owner (GitHub)  | @NotBot-Computer                                                          | @efekaansalici07-design                                       | @Metehan02                                                     | @efeberkinaslan07-rgb                                               |
 | Product work    | USDx demo token, BSV-21 overlay, create / fill / cancel offers, broadcast | Order book API, offer validation, paid 402 service, live feed | Wallet connection, Swap / Sell / Agent pages, transaction feed | Agent wallet, spend policy, tools (find offer, swap, pay), LLM loop |
 | Submission work | WhatsOnChain link table in the README                                     | README setup section, demo environment                        | Demo video (≤ 2:30)                                            | Devfolio description, pitch for the judges                          |
 | Rough effort    | ~18 h                                                                     | ~18 h                                                         | ~18 h                                                          | ~18 h                                                               |
