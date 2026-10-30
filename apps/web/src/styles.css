@@ -227,6 +227,92 @@ button.secondary {
   margin: 0;
 }
 
+.fund {
+  margin: 0 0 20px;
+}
+
+.fund-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.fund-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: #6b6f76;
+}
+
+.fund-form .fund-amount {
+  flex: 0 0 160px;
+}
+
+.fund-form input {
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  background: #fff;
+  color: #16181d;
+}
+
+.fund-form input:focus {
+  outline: 2px solid #1d4ed8;
+  outline-offset: -1px;
+}
+
+.field-error {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #b42318;
+}
+
+.fund-result {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #b7e4c4;
+  border-radius: 10px;
+  background: #f0faf3;
+  font-size: 14px;
+}
+
+.fund-result p {
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+
+.fund-history {
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+.fund-history ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.fund-history li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid #f1f1f3;
+}
+
+.fund-history button,
+.fund-result button {
+  font-size: 13px;
+  padding: 5px 10px;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -477,8 +563,14 @@ button.secondary {
   }
 
   .check,
-  .service {
+  .service,
+  .fund-form {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fund-form .fund-amount {
+    flex-basis: auto;
   }
 
   .service-figures {

@@ -4,7 +4,15 @@
 //
 // Not wallet-toolbox's Setup.fundWalletFromP2PKHOutpoints: it leaves the broadcast to the wallet's Monitor
 // (delayed broadcast), so without a running Monitor the sweep is counted in the balance but never sent.
-import { Beef, CachedKeyDeriver, P2PKH, Transaction, type PrivateKey, type WalletProtocol } from '@bsv/sdk'
+import {
+  Beef,
+  CachedKeyDeriver,
+  MerklePath,
+  P2PKH,
+  Transaction,
+  type PrivateKey,
+  type WalletProtocol,
+} from '@bsv/sdk'
 import type { Wallet } from '@bsv/wallet-toolbox'
 import type { Network } from '@agentswap/core'
 
@@ -55,7 +63,8 @@ export async function sweepDeposits(
       const { merklePath } = await services.getMerklePath(txid)
       if (merklePath === undefined) throw new Error('not mined yet; try again after one confirmation')
       const tx = Transaction.fromBinary(rawTx)
-      tx.merklePath = merklePath
+      // wallet-toolbox builds its MerklePath with its own (CommonJS) copy of the SDK; rebuild it with ours.
+      tx.merklePath = MerklePath.fromBinary(merklePath.toBinary())
       const output = tx.outputs[vout]
       if (output?.lockingScript.toHex() !== expected)
         throw new Error('the output does not pay the deposit address')

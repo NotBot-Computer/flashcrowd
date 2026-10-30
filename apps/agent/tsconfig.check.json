@@ -1,0 +1,12 @@
+{
+  // Type checking only, as in apps/server. tsx reads tsconfig.json at run time and would follow these paths to the
+  // SDK's declaration file instead of its code.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // As in packages/core: wallet-toolbox (CommonJS) gets the SDK's CJS declarations, so ours must come from the same
+    // build.
+    "paths": {
+      "@bsv/sdk": ["../../node_modules/@bsv/sdk/dist/cjs/mod.d.ts"]
+    }
+  }
+}

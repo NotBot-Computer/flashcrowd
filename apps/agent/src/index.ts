@@ -4,6 +4,7 @@
 // printed with WhatsOnChain links.
 import { readSettings } from './config'
 import { httpCoordinator } from './httpCoordinator'
+import { ledgerFileFor } from './ledger'
 import { checkAgents, runAgents, summarize } from './runner'
 import { openAgentWallet, type AgentWallet } from './wallet'
 
@@ -43,12 +44,14 @@ if (notReady.length > 0) {
 
 const open: AgentWallet[] = []
 try {
-  for (const agent of settings.agents) open.push(await openAgentWallet({ keyFile: agent.keyFile, network }))
+  for (const agent of settings.agents)
+    open.push(await openAgentWallet({ keyFile: agent.keyFile, network, monitor: true }))
   const outcomes = await runAgents(
     settings.agents.map((agent, i) => ({
       ctx: { wallet: open[i].wallet, network },
       coordinator: httpCoordinator(settings.serverUrl, open[i].wallet),
       spentSats: 0,
+      ledgerFile: ledgerFileFor(agent.keyFile, network),
       config: {
         name: agent.name,
         policy: settings.policy,
