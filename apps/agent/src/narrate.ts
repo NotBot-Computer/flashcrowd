@@ -55,16 +55,19 @@ export function claudeComplete(client: Anthropic, model = NARRATE_MODEL): Comple
   }
 }
 
-/** Narrates each step in NARRATED_STEPS once. Never throws and never makes an agent wait. */
+/**
+ * Narrates each step in NARRATED_STEPS once. Never throws and never makes an agent wait. The model calls run at the
+ * same time, but the sentences print in the order their steps happened, each with its step.
+ */
 export class Narrator {
   private readonly seen = new Set<AgentStep>()
-  private readonly pending: Promise<void>[] = []
+  private printed: Promise<void> = Promise.resolve()
   private failed = false
 
   /** `onError` hears about the first failure only (no credentials, rate limit…), so the terminal says why once. */
   constructor(
     private readonly complete: Complete,
-    private readonly print: (sentence: string) => void,
+    private readonly print: (sentence: string, step: AgentStep) => void,
     private readonly onError: (error: unknown) => void = () => undefined,
   ) {}
 
@@ -72,23 +75,22 @@ export class Narrator {
   step(step: AgentStep, line: string): void {
     if (!NARRATED_STEPS.includes(step) || this.seen.has(step)) return
     this.seen.add(step)
-    this.pending.push(
-      this.complete(line).then(
-        (sentence) => {
-          if (sentence !== undefined) this.print(sentence)
-        },
-        (error: unknown) => {
-          if (this.failed) return
-          this.failed = true
-          this.onError(error)
-        },
-      ),
-    )
+    const sentence = this.complete(line).catch((error: unknown) => {
+      if (!this.failed) {
+        this.failed = true
+        this.onError(error)
+      }
+      return undefined
+    })
+    this.printed = this.printed.then(async () => {
+      const text = await sentence
+      if (text !== undefined) this.print(text, step)
+    })
   }
 
   /** Waits for sentences still on their way, so they print before the summary. */
   async flush(): Promise<void> {
-    await Promise.allSettled(this.pending)
+    await this.printed
   }
 }
 
@@ -98,7 +100,7 @@ export class Narrator {
  */
 export function narratorFromEnv(
   env: Record<string, string | undefined>,
-  print: (sentence: string) => void,
+  print: (sentence: string, step: AgentStep) => void,
   onError?: (error: unknown) => void,
 ): { narrator: Narrator; model: string } | { narrator: undefined; reason: string } {
   if (env.AGENT_NARRATE !== '1') return { narrator: undefined, reason: 'off (set AGENT_NARRATE=1)' }

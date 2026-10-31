@@ -50,6 +50,7 @@ export type AgentStep =
   | 'authorize'
   | 'fund'
   | 'settle'
+  | 'wait'
   | 'decrypt'
   | 'refund'
   | 'refuse'
@@ -249,12 +250,12 @@ export async function runPurchase(deps: AgentDeps, config: AgentConfig): Promise
     let settlement: Settlement | undefined
     try {
       settlement = await coordinator.settlement(group.id)
-      if (unreachable) deps.log?.('settle', `${config.name}: the coordinator is back`)
+      if (unreachable) deps.log?.('wait', `${config.name}: the coordinator is back`)
       unreachable = false
     } catch (e) {
       if (!unreachable) {
         deps.log?.(
-          'settle',
+          'wait',
           `${config.name}: the coordinator is unreachable (${(e as Error).message}); still waiting`,
         )
       }

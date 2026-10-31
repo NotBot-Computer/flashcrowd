@@ -45,7 +45,7 @@ if (notReady.length > 0) {
 
 const narration = narratorFromEnv(
   process.env,
-  (sentence) => console.log(`  💬 ${sentence}`),
+  (sentence, step) => console.log(`  💬 [${step}] ${sentence}`),
   (error) => console.log(`  💬 narration skipped: ${error instanceof Error ? error.message : String(error)}`),
 )
 console.log(
