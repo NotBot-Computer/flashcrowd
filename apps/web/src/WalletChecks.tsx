@@ -11,7 +11,8 @@ import {
 } from './checks'
 import { StatusChip } from './Dashboard'
 
-type Status = { state: 'idle' } | { state: 'running' } | { state: 'done'; result: CheckResult; wocUrl?: string }
+type Status =
+  { state: 'idle' } | { state: 'running' } | { state: 'done'; result: CheckResult; wocUrl?: string }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -59,8 +60,8 @@ export function WalletChecks({ ctx }: { ctx: HtlcContext }) {
   }
 
   return (
-    <section className="panel">
-      <h2>Wallet checks</h2>
+    <section className="page">
+      <h2 className="page-title">Wallet checks</h2>
       <p className="muted">
         Each check makes the same wallet call FlashCrowd makes. Approve the requests in BSV Desktop.
       </p>
@@ -144,5 +145,9 @@ function CheckRow(props: { title: string; call: string; note: string; status: St
 function StatusBadge({ status }: { status: Status }) {
   if (status.state === 'idle') return <StatusChip label="Not run" tone="neutral" />
   if (status.state === 'running') return <StatusChip label="Running" tone="progress" />
-  return status.result.ok ? <StatusChip label="Pass" tone="success" /> : <StatusChip label="Fail" tone="danger" />
+  return status.result.ok ? (
+    <StatusChip label="Pass" tone="success" />
+  ) : (
+    <StatusChip label="Fail" tone="danger" />
+  )
 }

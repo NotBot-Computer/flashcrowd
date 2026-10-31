@@ -16,7 +16,7 @@ export function SourceBar({ source }: { source: Source }) {
   const feedLabel = source.feed !== 'open' && source.feedPolled ? 'Feed every 5 s' : FEED_LABEL[source.feed]
   return (
     <p className="source-bar">
-      <StatusChip label="Live" tone="success" />
+      <StatusChip label="Live" tone="success" pulse />
       {source.health && (
         <span className="muted">
           {source.health.network} · block {source.health.height.toLocaleString('en')}

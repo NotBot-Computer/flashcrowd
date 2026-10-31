@@ -1,10 +1,12 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { Dashboard, FeedPanel, GroupCard } from '../src/Dashboard'
+import { ActivityList, Dashboard, GroupDetail, GroupList } from '../src/Dashboard'
 import { mockData } from '../src/mock'
 import {
+  dashboardStats,
   fundedSats,
   fundingProgress,
+  groupEvents,
   groupStatus,
   maxBuyers,
   serviceTitle,
@@ -95,61 +97,122 @@ describe('simulation data', () => {
   })
 })
 
+describe('overview numbers', () => {
+  it('sums funding and counts groups, outcomes and distinct agents', () => {
+    expect(dashboardStats(mockData(NOW).groups)).toEqual({
+      fundedSats: 8_000 + 12_000 + 20_000,
+      groups: 4,
+      claimed: 1,
+      refunded: 0,
+      agents: 4,
+    })
+  })
+
+  it('picks the events that name a group', () => {
+    const feed = mockData(NOW).feed
+    expect(groupEvents(feed, 'group-a1').every((e) => e.message.includes('group-a1'))).toBe(true)
+    expect(groupEvents(feed, 'group-a1')).toHaveLength(5)
+    expect(groupEvents(feed, 'nope')).toEqual([])
+  })
+})
+
 describe('Dashboard', () => {
   it('labels simulation data and shows no transaction id', () => {
-    const html = renderToStaticMarkup(<Dashboard data={mockData(NOW)} />)
+    const html = renderToStaticMarkup(<Dashboard data={mockData(NOW)} now={NOW} />)
     expect(html).toContain('Simulation.')
-    expect(html).toContain('None in simulation')
     // Identity keys appear only shortened in the text; full keys sit in title attributes, txids nowhere.
     const text = html.replace(/title="[^"]*"/g, '')
     expect(text).not.toMatch(HEX64)
   })
 
-  it('lists every service and group', () => {
+  it('lists every service and group, and the numbers', () => {
     const data = mockData(NOW)
-    const html = renderToStaticMarkup(<Dashboard data={data} />)
+    const html = renderToStaticMarkup(<Dashboard data={data} now={NOW} />)
     for (const s of data.services) expect(html).toContain(s.title)
     for (const g of data.groups) expect(html).toContain(g.id)
+    expect(html).toContain('40,000')
+    expect(html).toContain('sats funded')
+  })
+
+  it('shows the block height when the server reports it', () => {
+    const health = { ok: true, network: 'mainnet' as const, height: 973343 }
+    const html = renderToStaticMarkup(<Dashboard data={mockData(NOW)} health={health} now={NOW} />)
+    expect(html).toContain('973,343')
+    expect(html).toContain('block · mainnet')
   })
 
   it('has no simulation notice for live data', () => {
-    const html = renderToStaticMarkup(<Dashboard data={{ ...mockData(NOW), simulation: false }} />)
+    const html = renderToStaticMarkup(<Dashboard data={{ ...mockData(NOW), simulation: false }} now={NOW} />)
     expect(html).not.toContain('Simulation.')
   })
 })
 
-describe('GroupCard', () => {
+describe('GroupList', () => {
+  const services = mockData(NOW).services
+
+  it('shows a long group id shortened, with the full id on hover', () => {
+    const id = 'group-de38ed6a-430d-4496-9930-83fb13836f1f'
+    const html = renderToStaticMarkup(
+      <GroupList groups={[groupWith({ id })]} services={services} onSelect={() => {}} now={NOW} />,
+    )
+    expect(html).toContain('group-de38ed6a…')
+    expect(html).toContain(`title="${id}"`)
+  })
+
+  it('says when there are no groups', () => {
+    const html = renderToStaticMarkup(<GroupList groups={[]} services={services} onSelect={() => {}} />)
+    expect(html).toContain('No purchase groups yet')
+  })
+})
+
+describe('GroupDetail', () => {
   it('links every real transaction to WhatsOnChain', () => {
     const txid = 'cd'.repeat(32)
     const wocUrl = `https://test.whatsonchain.com/tx/${txid}`
     const group = groupWith({ transactions: [{ kind: 'claim', txid, wocUrl }] })
-    const html = renderToStaticMarkup(<GroupCard group={group} title="Dataset" simulation={false} />)
+    const html = renderToStaticMarkup(
+      <GroupDetail group={group} title="Dataset" simulation={false} events={[]} />,
+    )
     expect(html).toContain(`href="${wocUrl}"`)
     expect(html).not.toContain('None yet')
   })
 
-  it('shows a long group id shortened, with the full id on hover', () => {
-    const id = 'group-de38ed6a-430d-4496-9930-83fb13836f1f'
-    const html = renderToStaticMarkup(<GroupCard group={groupWith({ id })} title="Dataset" simulation={false} />)
-    expect(html).toContain('group-de38ed6a…')
-    expect(html).toContain(`title="${id}"`)
+  it('says a simulated group has no transactions, and shows its events', () => {
+    const data = mockData(NOW)
+    const group = data.groups[0]
+    const html = renderToStaticMarkup(
+      <GroupDetail
+        group={group}
+        title="Dataset"
+        simulation
+        events={groupEvents(data.feed, group.id)}
+        now={NOW}
+      />,
+    )
+    expect(html).toContain('None in simulation')
+    expect(html).toContain('is committed: every buyer accepted')
   })
 })
 
-describe('FeedPanel', () => {
+describe('ActivityList', () => {
+  const items = [
+    { id: 1, type: 'intent' as const, message: 'first', at: '2026-10-31T10:00:00Z' },
+    { id: 2, type: 'group' as const, message: 'second', at: '2026-10-31T10:01:00Z' },
+    { id: 3, type: 'lock' as const, message: 'third', at: '2026-10-31T10:02:00Z' },
+  ]
+
   it('shows the newest event first', () => {
-    const html = renderToStaticMarkup(
-      <FeedPanel
-        items={[
-          { id: 1, type: 'intent', message: 'first', at: '2026-10-31T10:00:00Z' },
-          { id: 2, type: 'group', message: 'second', at: '2026-10-31T10:01:00Z' },
-        ]}
-      />,
-    )
+    const html = renderToStaticMarkup(<ActivityList items={items} />)
     expect(html.indexOf('second')).toBeLessThan(html.indexOf('first'))
   })
 
+  it('keeps only the newest events when limited', () => {
+    const html = renderToStaticMarkup(<ActivityList items={items} limit={2} />)
+    expect(html).toContain('third')
+    expect(html).not.toContain('first')
+  })
+
   it('says when there are no events', () => {
-    expect(renderToStaticMarkup(<FeedPanel items={[]} />)).toContain('No events yet.')
+    expect(renderToStaticMarkup(<ActivityList items={[]} />)).toContain('No events yet.')
   })
 })

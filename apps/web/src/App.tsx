@@ -1,23 +1,47 @@
-import { useEffect, useState } from 'react'
-import { Dashboard, StatusChip } from './Dashboard'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  ActivityList,
+  Dashboard,
+  GroupDetail,
+  GroupList,
+  Section,
+  ServiceList,
+  SimulationNotice,
+  StatusChip,
+} from './Dashboard'
+import { Drawer } from './Drawer'
 import { FundAgent } from './FundAgent'
+import { Logo } from './Logo'
+import { groupEvents, serviceTitle } from './model'
 import { NetworkBanner } from './NetworkBanner'
 import { SourceBar } from './SourceBar'
 import { useDashboard } from './useDashboard'
 import { connectWallet, type Session } from './wallet'
 import { WalletChecks } from './WalletChecks'
 
-type Page = 'dashboard' | 'checks'
+const PAGES = [
+  { id: 'overview', href: '#/', label: 'Overview' },
+  { id: 'groups', href: '#/groups', label: 'Groups' },
+  { id: 'services', href: '#/services', label: 'Services' },
+  { id: 'activity', href: '#/activity', label: 'Activity' },
+  { id: 'checks', href: '#/checks', label: 'Wallet checks' },
+] as const
 
-const pageFromHash = (): Page => (window.location.hash === '#/checks' ? 'checks' : 'dashboard')
+type Page = (typeof PAGES)[number]['id']
+
+const pageFromHash = (): Page => PAGES.find((p) => p.href === window.location.hash)?.id ?? 'overview'
 
 export function App() {
   const [session, setSession] = useState<Session>()
   const [error, setError] = useState<string>()
   const [connecting, setConnecting] = useState(false)
   const [page, setPage] = useState<Page>(pageFromHash)
+  const [selectedGroup, setSelectedGroup] = useState<string>()
+  const [funding, setFunding] = useState(false)
   const { data, source, retry } = useDashboard()
-  const serverNetwork = source.kind === 'live' ? source.health?.network : undefined
+  const health = source.kind === 'live' ? source.health : undefined
+  const closeGroup = useCallback(() => setSelectedGroup(undefined), [])
+  const closeFunding = useCallback(() => setFunding(false), [])
 
   useEffect(() => {
     const onHash = () => setPage(pageFromHash())
@@ -55,54 +79,103 @@ export function App() {
     }
   }
 
+  const simulation = source.kind === 'simulation'
+  const group = data?.groups.find((g) => g.id === selectedGroup)
+  const groupTitle = (serviceId: string) => {
+    const s = data?.services.find((x) => x.id === serviceId)
+    return s ? serviceTitle(s.title, s.simulation) : serviceId
+  }
+
   return (
-    <>
-      <header className="app-header">
-        <div className="brand">
-          <h1>FlashCrowd</h1>
-          <nav>
-            <a href="#/" aria-current={page === 'dashboard' ? 'page' : undefined}>
-              Dashboard
+    <div className="shell">
+      <aside className="sidebar">
+        <h1>
+          <a href="#/" aria-label="FlashCrowd">
+            <Logo />
+          </a>
+        </h1>
+        <nav>
+          {PAGES.map((p) => (
+            <a key={p.id} href={p.href} aria-current={page === p.id ? 'page' : undefined}>
+              {p.label}
             </a>
-            <a href="#/checks" aria-current={page === 'checks' ? 'page' : undefined}>
-              Wallet checks
-            </a>
-          </nav>
-        </div>
-        {session ? (
-          <span className="wallet" title={session.identityKey}>
-            <StatusChip label={session.network} tone={session.network === 'mainnet' ? 'success' : 'warning'} />
-            <code>{session.identityKey.slice(0, 10)}…</code>
-          </span>
-        ) : (
-          <button onClick={onConnect} disabled={connecting}>
-            {connecting ? 'Waiting for the wallet…' : 'Connect wallet'}
+          ))}
+        </nav>
+        <div className="sidebar-foot">
+          <button className="secondary" onClick={() => setFunding(true)}>
+            Fund an agent
           </button>
-        )}
-      </header>
-      <main>
-        <NetworkBanner wallet={session?.network} server={serverNetwork} />
-        {error && <p role="alert">{error}</p>}
-        {page === 'dashboard' && (
-          <>
-            <SourceBar source={source} />
-            <FundAgent session={session} serverNetwork={serverNetwork} />
-            {data && (
-              <Dashboard
-                data={data}
-                simulationReason={source.kind === 'simulation' ? source.reason : undefined}
-                onRetry={source.kind === 'simulation' ? retry : undefined}
+          {session ? (
+            <span className="wallet" title={session.identityKey}>
+              <StatusChip
+                label={session.network}
+                tone={session.network === 'mainnet' ? 'success' : 'warning'}
               />
-            )}
-          </>
+              <code>{session.identityKey.slice(0, 10)}…</code>
+            </span>
+          ) : (
+            <button onClick={onConnect} disabled={connecting}>
+              {connecting ? 'Waiting for the wallet…' : 'Connect wallet'}
+            </button>
+          )}
+          <SourceBar source={source} />
+        </div>
+      </aside>
+
+      <main className="content">
+        <NetworkBanner wallet={session?.network} server={health?.network} />
+        {error && <p role="alert">{error}</p>}
+
+        {data && page === 'overview' && (
+          <Dashboard
+            data={data}
+            health={health}
+            simulationReason={simulation ? source.reason : undefined}
+            onRetry={simulation ? retry : undefined}
+            onSelectGroup={setSelectedGroup}
+          />
+        )}
+        {data && page !== 'overview' && page !== 'checks' && simulation && (
+          <SimulationNotice reason={source.reason} onRetry={retry} />
+        )}
+        {data && page === 'groups' && (
+          <Section label="Groups" count={data.groups.length}>
+            <GroupList groups={data.groups} services={data.services} onSelect={setSelectedGroup} />
+          </Section>
+        )}
+        {data && page === 'services' && (
+          <Section label="Services" count={data.services.length}>
+            <ServiceList services={data.services} />
+          </Section>
+        )}
+        {data && page === 'activity' && (
+          <Section label="Activity" count={data.feed.length}>
+            <ActivityList items={data.feed} />
+          </Section>
         )}
         {page === 'checks' &&
           (session ? (
             <WalletChecks ctx={session} />
           ) : (
-            <p className="muted">Connect your wallet to run the checks.</p>
+            <p className="empty">Connect your wallet to run the checks.</p>
           ))}
       </main>
-    </>
+
+      {group && data && (
+        <Drawer title="Purchase group" onClose={closeGroup}>
+          <GroupDetail
+            group={group}
+            title={groupTitle(group.serviceId)}
+            simulation={data.simulation}
+            events={groupEvents(data.feed, group.id)}
+          />
+        </Drawer>
+      )}
+      {funding && (
+        <Drawer title="Fund an agent" onClose={closeFunding}>
+          <FundAgent session={session} serverNetwork={health?.network} />
+        </Drawer>
+      )}
+    </div>
   )
 }

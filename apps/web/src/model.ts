@@ -72,6 +72,30 @@ export const shortKey = (key: string) => (key.length > 16 ? `${key.slice(0, 8)}â
 export const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
+export interface DashboardStats {
+  /** Sats every group's buyers have locked so far, claimed and refunded groups included. */
+  fundedSats: number
+  groups: number
+  claimed: number
+  refunded: number
+  /** Distinct agents that joined any group. */
+  agents: number
+}
+
+export function dashboardStats(groups: PurchaseGroup[]): DashboardStats {
+  return {
+    fundedSats: groups.reduce((sum, g) => sum + fundedSats(g), 0),
+    groups: groups.length,
+    claimed: groups.filter((g) => g.status === 'claimed').length,
+    refunded: groups.filter((g) => g.status === 'refunded').length,
+    agents: new Set(groups.flatMap((g) => g.participants.map((p) => p.identityKey))).size,
+  }
+}
+
+/** The feed's events about one group: the server names the group's id in their message. */
+export const groupEvents = (feed: FeedItem[], groupId: string) =>
+  feed.filter((e) => e.message.includes(groupId))
+
 /** "just now", "4 min ago", "2 h ago": how the feed dates its events. */
 export function timeAgo(iso: string, now = Date.now()): string {
   const seconds = Math.max(0, Math.round((now - Date.parse(iso)) / 1000))
