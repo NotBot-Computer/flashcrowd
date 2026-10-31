@@ -59,6 +59,42 @@ describe('Narrator', () => {
     expect(errors.map((e) => (e as Error).message)).toEqual(['no credentials'])
   })
 
+  it('prints the sentences in step order with their steps, however fast each answer comes back', async () => {
+    const delays: Record<string, number> = { search: 40, match: 0, fund: 20 }
+    const printed: string[] = []
+    const narrator = new Narrator(
+      async (line) => {
+        await new Promise((resolve) => setTimeout(resolve, delays[line]))
+        return `sentence about ${line}`
+      },
+      (s, step) => printed.push(`[${step}] ${s}`),
+    )
+    narrator.step('search', 'search')
+    narrator.step('match', 'match')
+    narrator.step('fund', 'fund')
+    await narrator.flush()
+    expect(printed).toEqual([
+      '[search] sentence about search',
+      '[match] sentence about match',
+      '[fund] sentence about fund',
+    ])
+  })
+
+  it('does not hold back later sentences when one call fails', async () => {
+    const printed: string[] = []
+    const narrator = new Narrator(
+      async (line) => {
+        if (line === 'search') throw new Error('rate limited')
+        return `sentence about ${line}`
+      },
+      (s) => printed.push(s),
+    )
+    narrator.step('search', 'search')
+    narrator.step('fund', 'fund')
+    await narrator.flush()
+    expect(printed).toEqual(['sentence about fund'])
+  })
+
   it('does not make the caller wait for the model', async () => {
     let release: () => void = () => undefined
     const narrator = new Narrator(

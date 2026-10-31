@@ -8,6 +8,7 @@ import type { Wallet } from '@bsv/wallet-toolbox'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createMockChain, type MockChain } from '../../../packages/core/test/helpers/mockchain'
 import type { Coordinator } from '../src/coordinator'
+import { Narrator } from '../src/narrate'
 import { readLedger } from '../src/ledger'
 import { recoverRefunds } from '../src/recover'
 import { runAgents, type AgentRun } from '../src/runner'
@@ -106,10 +107,20 @@ describe('after funding', () => {
       coord.client(agents[1].identityKey),
     ]
     const lines: string[] = []
-    const outcomes = await runAgents(runs(clients), (l) => lines.push(l))
+    const narrated: string[] = []
+    const narrator = new Narrator(async (line) => line, () => undefined)
+    const step = narrator.step.bind(narrator)
+    narrator.step = (s, line) => {
+      if (s === 'settle') narrated.push(line)
+      step(s, line)
+    }
+    const outcomes = await runAgents(runs(clients), (l) => lines.push(l), narrator)
     expect(outcomes.map((o) => o.status)).toEqual(['decrypted', 'decrypted'])
-    expect(lines.some((l) => l.includes('unreachable (tunnel down)'))).toBe(true)
-    expect(lines.some((l) => l.includes('the coordinator is back'))).toBe(true)
+    expect(lines.some((l) => l.startsWith('[wait]') && l.includes('unreachable (tunnel down)'))).toBe(true)
+    expect(lines.some((l) => l.startsWith('[wait]') && l.includes('the coordinator is back'))).toBe(true)
+    // The outage lines are not settle lines, so the settle sentence is always about the claim.
+    expect(narrated.length).toBeGreaterThan(0)
+    expect(narrated.every((l) => l.includes('seller claimed and revealed the key'))).toBe(true)
   })
 
   it('if the coordinator never comes back, each agent refunds on its own above the refund height', async () => {
