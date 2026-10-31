@@ -47,13 +47,16 @@ Tests: `npm test -w @agentswap/agent`, on wallet-toolbox's mock chain with a tes
 seller (`test/helpers/localCoordinator.ts`, not the server): three agents buy a 12,000-sat dataset and decrypt it; an
 agent whose policy rejects the terms signs nothing; the budget caps the offer; with no claim, two agents refund after
 the refund height; deposits are swept, an output to another address, a second sweep and an unmined deposit are
-refused. No testnet transaction yet.
+refused.
 
-Funding an agent on testnet:
+On BSV mainnet, three agents have run through the server three times: a purchase, a refund round with a seller
+that never claims, and a second purchase on 31 Oct with narration on. The first two are linked in the root README.
+
+Funding an agent (testnet unless `BSV_NETWORK=mainnet`):
 
 ```bash
 npm run wallet:init -w @agentswap/agent -- ~/.agentswap/agent-1.key
-npm run wallet -w @agentswap/agent -- address ~/.agentswap/agent-1.key   # send test coins here
+npm run wallet -w @agentswap/agent -- address ~/.agentswap/agent-1.key   # send coins here
 npm run wallet -w @agentswap/agent -- sweep ~/.agentswap/agent-1.key <txid>.<vout>   # after one confirmation
 ```
 
@@ -61,5 +64,3 @@ Then `npm run dev:agent -- --agents 3 --check` until every agent is ready.
 
 `test/server.test.ts` starts apps/server the way its own tests do and runs three agents through it over HTTP and
 BRC-103, plus a refund run with a seller that never claims.
-
-Next: the testnet run (funded agents, the server on testnet), optional LLM narration.
