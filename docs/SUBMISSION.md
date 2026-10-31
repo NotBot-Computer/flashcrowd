@@ -25,7 +25,7 @@ Deadline: **Saturday 31 October, 15:00**, on Devfolio. Only what is submitted by
 ## Before 14:30
 
 - [ ] No keys or secrets in the repo or its history: `git log -p | grep -inE "xprv|mnemonic|seed phrase|private key|sk-ant"`
-- [ ] Make the repo public: `gh repo edit NotBot-Computer/agentswap-bsv --visibility public --accept-visibility-change-consequences`
+- [ ] Make the repo public: `gh repo edit NotBot-Computer/flashcrowd --visibility public --accept-visibility-change-consequences`
 - [ ] Choose up to three tracks on Devfolio (BSV Association, plus any other that fits)
 - [ ] Rehearse the live demo for judging (15:00–17:00) and keep the video as a backup
 

@@ -117,7 +117,7 @@ The venue stays open on Friday night (bring a sleeping bag).
 
 ## 5. First run in VS Code
 
-1. `git clone https://github.com/NotBot-Computer/agentswap-bsv.git`, then File → Open Folder.
+1. `git clone https://github.com/NotBot-Computer/flashcrowd.git`, then File → Open Folder.
 2. Install the recommended extensions when VS Code offers them.
 3. `npm install`, then `cp .env.example .env`.
 4. Download the [BSV developer pack](https://drive.google.com/drive/folders/179lAsiQEiV1Fpf9SY8b0y4456-3QfxfG) into `dev-pack/`
