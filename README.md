@@ -8,7 +8,7 @@ middle holds keys or money, and every step is a BSV transaction on WhatsOnChain.
 > funding with delivery-conditional settlement on BSV.
 
 Built at the [TUM Blockchain & AI Hackathon 2026](https://hackathon.tum-blockchain.com) (Munich, 30–31 October 2026)
-for the **BSV Association track: DeFi Rails for Agentic Payments**. The repository is still named `agentswap-bsv`
+for the **BSV Association track: DeFi Rails for Agentic Payments**. The repository was originally named `agentswap-bsv`
 after our first idea; the team switched to FlashCrowd on 30 October.
 
 ## The problem

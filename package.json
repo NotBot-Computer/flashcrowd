@@ -1,5 +1,5 @@
 {
-  "name": "agentswap-bsv",
+  "name": "flashcrowd",
   "version": "0.0.0",
   "private": true,
   "description": "AgentSwap: non-custodial swap-and-pay rails for AI agents on BSV (TUM Blockchain & AI Hackathon 2026, BSV Association track)",

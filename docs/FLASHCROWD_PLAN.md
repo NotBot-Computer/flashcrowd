@@ -37,8 +37,8 @@ Bugün verilmesi gereken dört karar:
 
 | PR | Yazan | İçerik | Kanıt |
 | --- | --- | --- | --- |
-| [#11](https://github.com/NotBot-Computer/agentswap-bsv/pull/11) FlashCrowd task brief + HTLC spike | @NotBot-Computer | `docs/FLASHCROWD_TASK.md` ve 8 testlik HTLC denemesi | 8 testi kendim çalıştırdım, geçti |
-| [#12](https://github.com/NotBot-Computer/agentswap-bsv/pull/12) FlashCrowd core | @efeberkinaslan07-rgb | `types.ts`, `htlc.ts`, `collective.ts`, `spendPolicy.ts`, README API tablosu. Spike testleri gerçek testlerle değişti | 55 test (13 swap + 42 yeni), CI yeşil, conflict yok |
+| [#11](https://github.com/NotBot-Computer/flashcrowd/pull/11) FlashCrowd task brief + HTLC spike | @NotBot-Computer | `docs/FLASHCROWD_TASK.md` ve 8 testlik HTLC denemesi | 8 testi kendim çalıştırdım, geçti |
+| [#12](https://github.com/NotBot-Computer/flashcrowd/pull/12) FlashCrowd core | @efeberkinaslan07-rgb | `types.ts`, `htlc.ts`, `collective.ts`, `spendPolicy.ts`, README API tablosu. Spike testleri gerçek testlerle değişti | 55 test (13 swap + 42 yeni), CI yeşil, conflict yok |
 
 PR #12'nin mock chain'de gösterdikleri:
 
