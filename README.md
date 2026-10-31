@@ -163,7 +163,7 @@ them, a refund round (`group-cd001ff3…`, server started with `SELLER_NO_CLAIM=
 
 ## Demo
 
-Video (≤ 2:30): _tbd_
+Video (≤ 2:30): https://youtu.be/rIcmI1nUX1I
 
 ## Team
 
